@@ -15,12 +15,13 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.network "private_network", ip: "192.168.33.33"
 
   # Use the vagrant hostmaster plugin to automatically add a domain name
-  config.vm.hostname = "ldx"
-  config.hostmanager.enabled = true
-  config.hostmanager.manage_host = true
-  config.vm.provision :fabric do |fabric|
-    fabric.fabfile_path = "./fabfile.py"
-    fabric.tasks = ["lxd", ]
+  config.vm.define :server do |lxd|
+    lxd.vm.hostname = "lxd"
+    lxd.hostmanager.enabled = true
+    lxd.hostmanager.manage_host = true
+    lxd.vm.provision :fabric do |fabric|
+      fabric.fabfile_path = "./fabfile.py"
+      fabric.tasks = ["lxd", ]
+    end
   end
-
 end
