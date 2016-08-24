@@ -187,17 +187,47 @@ def read_key_file(key_file):
 
 def append_key(usernamea):
     with settings(warn_only=False):
-        key_file = '/home/'+usernamea+'/.ssh/id_rsa.pub'
-        key_text = read_key_file(key_file)
-        if exists('/home/'+usernamea+'/.ssh/authorized_keys', use_sudo=True):
-            print colored('#########################################', 'blue')
-            print colored('##### authorized_keys file exists #######', 'blue')
-            print colored('#########################################', 'blue')
-            append('/home/'+usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
+        if(usernamea == "root"):
+            key_file = '/'+ usernamea+'/.ssh/id_rsa.pub'
+            key_text = read_key_file(key_file)
+            if exists('/'+usernamea+'/.ssh/authorized_keys', use_sudo=True):
+                local('sudo chmod 701 /home/' + usernamea)
+                local('sudo chmod 741 /home/' + usernamea + '/.ssh')
+                local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa')
+                print colored('#########################################', 'blue')
+                print colored('##### authorized_keys file exists #######', 'blue')
+                print colored('#########################################', 'blue')
+                append('/'+usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
+                local('sudo chmod 700 /home/' + usernamea)
+                local('sudo chmod 700 /home/' + usernamea + '/.ssh')
+                local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa')
+            else:
+                sudo('mkdir -p /'+usernamea+'/.ssh/')
+                sudo('touch /'+usernamea+'/.ssh/authorized_keys')
+                append('/'+ usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
+                # put('/home/'+usernamea+'/.ssh/authorized_keys', '/home/'+usernamea+'/.ssh/')
+                local('sudo chmod 700 /home/' + usernamea)
+                local('sudo chmod 700 /home/' + usernamea + '/.ssh')
+                local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa')
+
         else:
-            sudo('mkdir -p /home/'+usernamea+'/.ssh/')
-            sudo('touch /home/' + usernamea + '/.ssh/authorized_keys')
-            append('/home/'+usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
+            key_file = '/home/'+usernamea+'/.ssh/id_rsa.pub'
+            local('sudo chmod 701 /home/' + usernamea)
+            local('sudo chmod 741 /home/' + usernamea + '/.ssh')
+            local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa')
+            key_text = read_key_file(key_file)
+            local('sudo chmod 700 /home/' + usernamea)
+            local('sudo chmod 700 /home/' + usernamea + '/.ssh')
+            local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa')
+            if exists('/home/'+usernamea+'/.ssh/authorized_keys', use_sudo=True):
+                print colored('#########################################', 'blue')
+                print colored('##### authorized_keys file exists #######', 'blue')
+                print colored('#########################################', 'blue')
+                append('/home/'+usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
+            else:
+                sudo('mkdir -p /home/'+usernamea+'/.ssh/')
+                sudo('touch /home/' + usernamea + '/.ssh/authorized_keys')
+                append('/home/'+usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
             #put('/home/'+usernamea+'/.ssh/authorized_keys', '/home/'+usernamea+'/.ssh/')
 
 def push_key(usernamep):
@@ -256,12 +286,18 @@ def push_key(usernamep):
 def test_key(usernamet):
     with settings(warn_only=False):
         hostvm = sudo('hostname')
+        local('sudo chmod 701 /home/' + usernamet)
+        local('sudo chmod 741 /home/' + usernamet + '/.ssh')
+        local('sudo chmod 604 /home/' + usernamet + '/.ssh/id_rsa')
         if (os.path.exists('/home/'+usernamet+'/.ssh/')):
             ssh_test = local('ssh -i /home/'+usernamet+'/.ssh/id_rsa -o "StrictHostKeyChecking no" -q '+usernamet+'@'+env.host_string+' exit')
             if (ssh_test.succeeded):
                 print colored('###################################################', 'blue')
                 print colored(usernamet+' WORKED! in:'+hostvm+' IP:'+env.host_string, 'blue')
                 print colored('###################################################', 'blue')
+                local('sudo chmod 700 /home/'+usernamet)
+                local('sudo chmod 700 /home/'+usernamet+'/.ssh')
+                local('sudo chmod 600 /home/'+usernamet+'/.ssh/id_rsa')
         else:
             print colored('###################################################', 'red')
             print colored(usernamet+' FAIL! in:'+hostvm+'- IP:'+env.host_string, 'red')
