@@ -12,6 +12,7 @@ from fabric.api import hosts, sudo, settings, hide, env, execute, prompt, run, l
 from fabric.contrib.files import append, exists
 from termcolor import colored
 import os
+import sys
 import logging
 #import apt
 import yum
@@ -94,6 +95,7 @@ def yum_package(action, package):
         hostvm = sudo('hostname')
         if(action =="install"):
             yumcache = yum.YumBase()
+            print(yumcache.rpmdb.searchNevra(name=package))
             if yumcache.rpmdb.searchNevra(name=package):
                 print colored('###############################################################################', 'yellow')
                 print colored(package + ' ALREADY INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'yellow')
@@ -115,6 +117,7 @@ def yum_package(action, package):
 
         elif (action =="upgrade"  ):
             yumcache = yum.YumBase()
+            print(yumcache.rpmdb.searchNevra(name=package))
             if yumcache.rpmdb.searchNevra(name=package):
                 print colored('############################################################################', 'yellow')
                 print colored(package + ' TO BE UPGRADED in:' + hostvm + '- IP:' + env.host_string, 'yellow')
