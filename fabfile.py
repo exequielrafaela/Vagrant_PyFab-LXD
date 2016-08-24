@@ -10,8 +10,9 @@ def lxd():
         print colored('##################################', 'blue')
 
         # Add the PPA repository for LXD/LXC stable
-
-
+        # sudo('if [[ ! -e "/etc/apt/sources.list.d/ubuntu-lxc-lxd-stable-trusty.list" ]]; then '
+        #    'sudo add-apt-repository -y ppa:ubuntu-lxc/lxd-stable; '
+        # 'fi')
         if exists('/etc/apt/sources.list.d/ubuntu-lxc-lxd-stable-trusty.list', use_sudo=True):
             print colored('##################################', 'blue')
             print colored('##### LDX repo already add #######', 'blue')
@@ -19,25 +20,18 @@ def lxd():
         else:
             sudo('add-apt-repository -y ppa:ubuntu-lxc/lxd-stable')
 
-
-        #sudo('if [[ ! -e "/etc/apt/sources.list.d/ubuntu-lxc-lxd-stable-trusty.list" ]]; then '
-        #    'sudo add-apt-repository -y ppa:ubuntu-lxc/lxd-stable; '
-        #'fi')
-
         sudo('apt-get update')
 
         # Install LXC/LXD if not already installed
-
+        # sudo('if [[ ! -e "/usr/bin/lxd" ]]; then '
+        #    'sudo apt-get -y install lxd; '
+        # 'fi')
         if exists('/usr/bin/lxd', use_sudo=True):
             print colored('##################################', 'blue')
-            print colored('##### LDX repo already add #######', 'blue')
+            print colored('##### LDX already Installed ######', 'blue')
             print colored('##################################', 'blue')
         else:
             sudo('add-apt-repository -y ppa:ubuntu-lxc/lxd-stable')
-
-        #sudo('if [[ ! -e "/usr/bin/lxd" ]]; then '
-        #    'sudo apt-get -y install lxd; '
-        #'fi')
 
         #Add the public LinuxContainers.org image repository by running
         sudo('lxc remote add lxc-org images.linuxcontainers.org')
@@ -45,8 +39,21 @@ def lxd():
         #Copy the 32-bit Ubuntu 14.04 container image to your system with the command
         #Copy the 64-bit Centos 7.0 container image to your system with the command
         #https: // images.linuxcontainers.org /
-        sudo('lxc image copy lxc-org:/ubuntu/trusty/i386 local: --alias=trusty32')
-        sudo('lxc image copy lxc-org:/centos/7/amd64 local: --alias=centos764')
+        ubuntu_img = sudo('lxc image list | grep "trusty (i386)"')
+        if(ubuntu_img != ""):
+            print colored('##############################################', 'blue')
+            print colored('#### LXC Ubuntu Trusty IMG already exists ####', 'blue')
+            print colored('##############################################', 'blue')
+        else:
+            sudo('lxc image copy lxc-org:/ubuntu/trusty/i386 local: --alias=trusty32')
+
+        centos_img = sudo('lxc image list | grep "Centos 7"')
+        if (centos_img != ""):
+            print colored('##############################################', 'blue')
+            print colored('#### LXC Ubuntu Trusty IMG already exists ####', 'blue')
+            print colored('##############################################', 'blue')
+        else:
+            sudo('lxc image copy lxc-org:/centos/7/amd64 local: --alias=centos764')
 
         print colored('##########################', 'blue')
         print colored('###### LXD PROVISION #####', 'blue')
