@@ -158,6 +158,41 @@ def yum_package(action, package):
             print colored('Usage eg2: $ fab -R dev yum_package:upgrade,gcc', 'red')
             print colored('############################################################################', 'blue')
 
+def create_user(usernamec):
+    with settings(warn_only=False):
+        #usernamep = prompt("Which USERNAME you like to CREATE & PUSH KEYS?")
+        #user_exists = sudo('cat /etc/passwd | grep '+usernamep)
+        #user_exists =sudo('grep "^'+usernamep+':" /etc/passwd')
+        ##user_exists = sudo('cut -d: -f1 /etc/passwd | grep ' + usernamep)
+        #print colored(user_exists, 'green')
+        #print(env.host_string)
+        #sudo('uname -a')
+
+        try:
+        ##if(user_exists != ""):
+            user_exists = sudo('cut -d: -f1 /etc/passwd | grep '+usernamec)
+            if (user_exists != ""):
+                print colored('##############################', 'green')
+                print colored('"' + usernamec + '" already exists', 'green')
+                print colored('##############################', 'green')
+            else:
+                print colored('#################################', 'green')
+                print colored('"' + usernamec + '" doesnt exists', 'green')
+                print colored('WILL BE CREATED', 'green')
+                print colored('##################################', 'green')
+                sudo('useradd ' + usernamec + ' -m -d /home/' + usernamec)
+                #sudo('echo "' + usernamep + ':' + usernamep + '" | chpasswd')
+                sudo('gpasswd -a ' + usernamep + ' wheel')
+        except:
+        ##else:
+            print colored('#################################', 'green')
+            print colored('"' + usernamec + '" doesnt exists', 'green')
+            print colored('WILL BE CREATED', 'green')
+            print colored('##################################', 'green')
+            sudo('useradd ' + usernamec + ' -m -d /home/' + usernamec)
+            #sudo('echo "'+usernamep+':'+usernamep+'" | chpasswd')
+            sudo('gpasswd -a ' + usernamec + ' wheel')
+
 def gen_key():
     with settings(warn_only=False):
         usernameg = prompt("Which USERNAME you like to GEN KEYS?")
@@ -220,14 +255,14 @@ def append_key(usernamea):
             if exists('/'+usernamea+'/.ssh/authorized_keys', use_sudo=True):
                 local('sudo chmod 701 /home/' + usernamea)
                 local('sudo chmod 741 /home/' + usernamea + '/.ssh')
-                local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa')
+                local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa.pub')
                 print colored('#########################################', 'blue')
                 print colored('##### authorized_keys file exists #######', 'blue')
                 print colored('#########################################', 'blue')
                 append('/'+usernamea+'/.ssh/authorized_keys', key_text, use_sudo=True)
                 local('sudo chmod 700 /home/' + usernamea)
                 local('sudo chmod 700 /home/' + usernamea + '/.ssh')
-                local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa')
+                local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa.pub')
             else:
                 sudo('mkdir -p /'+usernamea+'/.ssh/')
                 sudo('touch /'+usernamea+'/.ssh/authorized_keys')
@@ -235,17 +270,17 @@ def append_key(usernamea):
                 # put('/home/'+usernamea+'/.ssh/authorized_keys', '/home/'+usernamea+'/.ssh/')
                 local('sudo chmod 700 /home/' + usernamea)
                 local('sudo chmod 700 /home/' + usernamea + '/.ssh')
-                local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa')
+                local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa.pub')
 
         else:
             key_file = '/home/'+usernamea+'/.ssh/id_rsa.pub'
             local('sudo chmod 701 /home/' + usernamea)
             local('sudo chmod 741 /home/' + usernamea + '/.ssh')
-            local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa')
+            local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa.pub')
             key_text = read_key_file(key_file)
             local('sudo chmod 700 /home/' + usernamea)
             local('sudo chmod 700 /home/' + usernamea + '/.ssh')
-            local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa')
+            local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa.pub')
             if exists('/home/'+usernamea+'/.ssh/authorized_keys', use_sudo=True):
                 print colored('#########################################', 'blue')
                 print colored('##### authorized_keys file exists #######', 'blue')
@@ -278,6 +313,7 @@ def push_key(usernamep):
                 local('sudo chmod 701 /home/' + usernamep)
                 local('sudo chmod 741 /home/' + usernamep + '/.ssh')
                 local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa')
+                local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa.pub')
 
                 local('ssh-copy-id -i /home/' + usernamep + '/.ssh/id_rsa.pub ' + usernamep + '@' + env.host_string)
                 sudo('chmod 700 /home/' + usernamep + '/.ssh/authorized_keys')
@@ -286,6 +322,7 @@ def push_key(usernamep):
                 local('sudo chmod 700 /home/' + usernamep)
                 local('sudo chmod 700 /home/' + usernamep + '/.ssh')
                 local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
+                local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa.pub')
             else:
                 print colored('#################################', 'green')
                 print colored('"' + usernamep + '" doesnt exists', 'green')
@@ -293,10 +330,12 @@ def push_key(usernamep):
                 print colored('##################################', 'green')
                 local('sudo chmod 701 /home/' + usernamep)
                 local('sudo chmod 741 /home/' + usernamep + '/.ssh')
-                local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa')
+                local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
+                local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa.pub')
 
                 sudo('useradd ' + usernamep + ' -m -d /home/' + usernamep)
                 sudo('echo "' + usernamep + ':' + usernamep + '" | chpasswd')
+
                 # Remember that the usernamep is not in the remote server
                 # Then you are gona be ask the pass of this user.
                 # To avoid this you must use a user that it's already created
@@ -308,6 +347,7 @@ def push_key(usernamep):
                 local('sudo chmod 700 /home/' + usernamep)
                 local('sudo chmod 700 /home/' + usernamep + '/.ssh')
                 local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
+                local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa.pub')
         except:
         ##else:
             print colored('#################################', 'green')
@@ -317,6 +357,7 @@ def push_key(usernamep):
             local('sudo chmod 701 /home/' + usernamep)
             local('sudo chmod 741 /home/' + usernamep + '/.ssh')
             local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa')
+            local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa.pub')
             sudo('useradd ' + usernamep + ' -m -d /home/' + usernamep)
             sudo('echo "'+usernamep+':'+usernamep+'" | chpasswd')
             # Remember that the usernamep is not in the remote server
@@ -329,6 +370,7 @@ def push_key(usernamep):
             local('sudo chmod 700 /home/' + usernamep)
             local('sudo chmod 700 /home/' + usernamep + '/.ssh')
             local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
+            local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa.pub')
 
 def test_key(usernamet):
     with settings(warn_only=False):
