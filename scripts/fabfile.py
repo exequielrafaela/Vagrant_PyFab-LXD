@@ -275,15 +275,25 @@ def push_key(usernamep):
                 print colored('"' + usernamep + '" already exists', 'green')
                 print colored('PUSHING KEYS', 'green')
                 print colored('##############################', 'green')
+                local('sudo chmod 701 /home/' + usernamep)
+                local('sudo chmod 741 /home/' + usernamep + '/.ssh')
+                local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa')
 
                 local('ssh-copy-id -i /home/' + usernamep + '/.ssh/id_rsa.pub ' + usernamep + '@' + env.host_string)
                 sudo('chmod 700 /home/' + usernamep + '/.ssh/authorized_keys')
                 sudo('gpasswd -a ' + usernamep + ' wheel')
+
+                local('sudo chmod 700 /home/' + usernamep)
+                local('sudo chmod 700 /home/' + usernamep + '/.ssh')
+                local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
             else:
                 print colored('#################################', 'green')
                 print colored('"' + usernamep + '" doesnt exists', 'green')
                 print colored('PUSHING KEYS', 'green')
                 print colored('##################################', 'green')
+                local('sudo chmod 701 /home/' + usernamep)
+                local('sudo chmod 741 /home/' + usernamep + '/.ssh')
+                local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa')
 
                 sudo('useradd ' + usernamep + ' -m -d /home/' + usernamep)
                 sudo('echo "' + usernamep + ':' + usernamep + '" | chpasswd')
@@ -294,12 +304,19 @@ def push_key(usernamep):
                 local('ssh-copy-id -i /home/' + usernamep + '/.ssh/id_rsa.pub ' + usernamep + '@' + env.host_string)
                 sudo('chmod 700 /home/' + usernamep + '/.ssh/authorized_keys')
                 sudo('gpasswd -a ' + usernamep + ' wheel')
+
+                local('sudo chmod 700 /home/' + usernamep)
+                local('sudo chmod 700 /home/' + usernamep + '/.ssh')
+                local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
         except:
         ##else:
             print colored('#################################', 'green')
             print colored('"' + usernamep + '" doesnt exists', 'green')
             print colored('PUSHING KEYS', 'green')
             print colored('##################################', 'green')
+            local('sudo chmod 701 /home/' + usernamep)
+            local('sudo chmod 741 /home/' + usernamep + '/.ssh')
+            local('sudo chmod 604 /home/' + usernamep + '/.ssh/id_rsa')
             sudo('useradd ' + usernamep + ' -m -d /home/' + usernamep)
             sudo('echo "'+usernamep+':'+usernamep+'" | chpasswd')
             # Remember that the usernamep is not in the remote server
@@ -309,6 +326,9 @@ def push_key(usernamep):
             local('ssh-copy-id -i /home/'+usernamep+'/.ssh/id_rsa.pub '+usernamep+'@'+env.host_string)
             sudo('chmod 700 /home/'+usernamep+'/.ssh/authorized_keys')
             sudo('gpasswd -a ' + usernamep + ' wheel')
+            local('sudo chmod 700 /home/' + usernamep)
+            local('sudo chmod 700 /home/' + usernamep + '/.ssh')
+            local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
 
 def test_key(usernamet):
     with settings(warn_only=False):
