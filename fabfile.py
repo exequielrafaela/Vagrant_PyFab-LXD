@@ -97,11 +97,12 @@ def lxd():
         sudo('lxc exec lxd-centos-01 -- yum clean all')
         sudo('lxc exec lxd-centos-01 -- yum install -y gcc glibc glibc-common gd gd-devel')
         sudo('lxc exec lxd-centos-01 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients')
-        sudo('lxc exec lxd-centos-01 -- yum install -y epel-release')
+        sudo('lxc exec lxd-centos-01 -- yum install -y epel-release ruby')
         sudo('lxc exec lxd-centos-01 -- yum install -y python-pip')
         sudo('lxc exec lxd-centos-01 -- pip install --upgrade pip')
         sudo('lxc exec lxd-centos-01 -- pip install fabric')
         sudo('lxc exec lxd-centos-01 -- pip install termcolor')
+        sudo('gem install bundler')
         sudo('lxc exec lxd-centos-01 -- chkconfig sshd on')
         sudo('lxc exec lxd-centos-01 -- service sshd start')
 
