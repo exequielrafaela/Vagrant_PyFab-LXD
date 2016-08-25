@@ -94,36 +94,60 @@ def yum_package(action, package):
     with settings(warn_only=False):
         hostvm = sudo('hostname')
         if(action =="install"):
-            yumcache = yum.YumBase()
-            print(yumcache.rpmdb.searchNevra(name=package))
-            if yumcache.rpmdb.searchNevra(name=package):
-                print colored('###############################################################################', 'yellow')
-                print colored(package + ' ALREADY INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'yellow')
-                print colored('###############################################################################', 'yellow')
-            else:
-                print colored('###############################################################################', 'blue')
-                print colored(package + ' WILL BE INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'blue')
-                print colored('###############################################################################', 'blue')
-                sudo('yum install -y '+package)
-                yumcache = yum.YumBase()
-                if yumcache.rpmdb.searchNevra(name=package):
-                    print colored('##################################################################################', 'green')
-                    print colored(package + ' SUCCESFULLY INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'green')
-                    print colored('##################################################################################', 'green')
+            #yumcache = yum.YumBase()
+            #print(yumcache.rpmdb.searchNevra(name=package))
+            try:
+                package_inst = sudo('yum list install '+package)
+                print(package_inst)
+                #if yumcache.rpmdb.searchNevra(name=package):
+                # if not package_inst:
+                if (package_inst == "" ):
+                    print colored('###############################################################################', 'blue')
+                    print colored(package + ' WILL BE INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'blue')
+                    print colored('###############################################################################', 'blue')
+                    try:
+                        sudo('yum install -y '+package)
+                        #yumcache = yum.YumBase()
+                        #if yumcache.rpmdb.searchNevra(name=package):
+                        package_inst = sudo('yum list install ' + package)
+                        if (package_inst == ""):
+                            print colored('#################################################################################', 'red')
+                            print colored(package + ' INSTALLATION PROBLEM in:' + hostvm + '- IP:' + env.host_string, 'red')
+                            print colored('#################################################################################', 'red')
+                        else:
+                            print colored('##################################################################################', 'green')
+                            print colored(package + ' SUCCESFULLY INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'green')
+                            print colored('##################################################################################', 'green')
+                    except:
+                            print colored('#################################################################################', 'red')
+                            print colored(package + ' INSTALLATION PROBLEM in:' + hostvm + '- IP:' + env.host_string, 'red')
+                            print colored('#################################################################################', 'red')
                 else:
-                    print colored('#################################################################################', 'red')
-                    print colored(package + ' INSTALLATION PROBLEM in:' + hostvm + '- IP:' + env.host_string, 'red')
-                    print colored('#################################################################################', 'red')
+                    print colored('###############################################################################', 'yellow')
+                    print colored(package + ' ALREADY INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'yellow')
+                    print colored('###############################################################################', 'yellow')
+            except:
+                print colored('#################################################################################', 'red')
+                print colored(package + ' INSTALLATION PROBLEM in:' + hostvm + '- IP:' + env.host_string, 'red')
+                print colored('#################################################################################', 'red')
 
         elif (action =="upgrade"  ):
-            yumcache = yum.YumBase()
-            print(yumcache.rpmdb.searchNevra(name=package))
-            if yumcache.rpmdb.searchNevra(name=package):
-                print colored('############################################################################', 'yellow')
-                print colored(package + ' TO BE UPGRADED in:' + hostvm + '- IP:' + env.host_string, 'yellow')
-                print colored('############################################################################', 'yellow')
-                sudo('yum update -y '+package)
-            else:
+            #yumcache = yum.YumBase()
+            #print(yumcache.rpmdb.searchNevra(name=package))
+            #if yumcache.rpmdb.searchNevra(name=package):
+            try:
+                package_inst = sudo('yum list install ' + package)
+                print(package_inst)
+                if (package_inst == ""):
+                    print colored('###########################################################################', 'red')
+                    print colored(package + ' NOT INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'red')
+                    print colored('###########################################################################', 'red')
+                else:
+                    print colored('############################################################################', 'yellow')
+                    print colored(package + ' TO BE UPGRADED in:' + hostvm + '- IP:' + env.host_string, 'yellow')
+                    print colored('############################################################################', 'yellow')
+                    sudo('yum update -y '+package)
+            except:
                 print colored('###########################################################################', 'red')
                 print colored(package + ' NOT INSTALLED in:' + hostvm + '- IP:' + env.host_string, 'red')
                 print colored('###########################################################################', 'red')
