@@ -578,146 +578,146 @@ def nfs_server_ubuntu(nfs_dir):
         #sudo firewall-cmd --zone=public --add-service=mountd --permanent
         #sudo firewall-cmd --reload
 
-def sp_local():
-    # git init
-    # git remote add origin https://
-    # git pull
-    #!/bin/bash
-    #sudo('apt-get -y update')
-    #sudo('apt-get -y install python-pip python-dev libevent-dev')
-    #sudo('pip install fabric termcolor')
+'''
+def sp_local(sp_dir):
     with settings(warn_only=False):
-        if exists('/Stream-Partitioner/', use_sudo=True):
+        if exists(sp_dir, use_sudo=True):
             print colored('##############################', 'blue')
             print colored('##### Directory Tree OK ######', 'blue')
             print colored('##############################', 'blue')
-            with cd('/Stream-Partitioner/'):
+            print colored(sp_dir, 'white', attrs=['bold'])
+            with cd(sp_dir):
                 try:
-                    print colored('######################################################', 'blue')
-                    print colored('####### COMPILE String Partitioning w/ MAVEN #########', 'blue')
-                    print colored('######################################################', 'blue')
-                    sudo('mvn install -Dmaven.test.skip=true')
+                    print colored('#####################################################', 'blue')
+                    print colored('####### COMPILE Stream Partitioner w/ MAVEN #########', 'blue')
+                    print colored('#####################################################', 'blue')
+                    run('mvn install -Dmaven.test.skip=true')
                 except:
-                    print colored('#############################################################', 'blue')
-                    print colored('####### FAIL to COMPILE String Partitioner w/ MAVEN #########', 'blue')
-                    print colored('#############################################################', 'blue')
-
+                    print colored('#############################################################', 'red')
+                    print colored('####### FAIL to COMPILE Stream Partitioner w/ MAVEN #########', 'red')
+                    print colored('#############################################################', 'red')
         else:
-            print colored('#########################################################', 'blue')
-            print colored('##### Directory /Stream-Partitioner/ doesnt exists ######', 'blue')
-            print colored('#########################################################', 'blue')
+            print colored('###########################################################', 'red')
+            print colored('##### Directory /Stream-Partitioner/ does not exists ######', 'red')
+            print colored('###########################################################', 'red')
 
-        if exists('/yarara-test/yarara-ace-test/project/', use_sudo=True):
+        if exists(sp_dir+'yarara-test/yarara-ace-test/project/', use_sudo=True):
             print colored('##############################', 'blue')
             print colored('##### Directory Tree OK ######', 'blue')
             print colored('##############################', 'blue')
-            with cd('/yarara-test/yarara-ace-test/project/'):
+            print colored(sp_dir+'yarara-test/yarara-ace-test/project/', 'white', attrs=['bold'])
+            with cd(sp_dir+'yarara-test/yarara-ace-test/project/'):
                 try:
                     print colored('##################################################', 'blue')
-                    print colored('####### RUN String Partitioner java -jar #########', 'blue')
+                    print colored('####### RUN Stream Partitioner java -jar #########', 'blue')
                     print colored('##################################################', 'blue')
+                    run('cp '+sp_dir+'target/StreamPartitioner-0.0.1-SNAPSHOT.jar SP.jar')
                     run('java -jar SP.jar')
                 except:
-                    print colored('##########################################################', 'blue')
-                    print colored('####### FAIL to RUN String Partitioner java -jar #########', 'blue')
-                    print colored('##########################################################', 'blue')
-
+                    print colored('#########################################################', 'red')
+                    print colored('####### FAIL to RUN Stream Partitioner java -jar ########', 'red')
+                    print colored('#########################################################', 'red')
         else:
-            print colored('####################################################################', 'blue')
-            print colored('##### Dir /yarara-test/yarara-ace-test/project/ doesnt exists ######', 'blue')
-            print colored('####################################################################', 'blue')
+            print colored('################################################', 'red')
+            print colored('##### Directory /project/ does not exists ######', 'red')
+            print colored('################################################', 'red')
 
-        if exists('/yarara-test/yarara-ace-test/', use_sudo=True):
+        if exists(sp_dir+'yarara-test/yarara-ace-test/', use_sudo=True):
             print colored('##############################', 'blue')
             print colored('##### Directory Tree OK ######', 'blue')
             print colored('##############################', 'blue')
-            with cd('/yarara-test/yarara-ace-test/'):
+            print colored(sp_dir+'yarara-test/yarara-ace-test/', 'white', attrs=['bold'])
+            with cd(sp_dir+'yarara-test/yarara-ace-test/'):
                 try:
                     print colored('########################################', 'blue')
                     print colored('####### Creating SP virtual env ########', 'blue')
                     print colored('########################################', 'blue')
-                    sudo('find . -name create_virtualenv.sh')
-                    sudo('chmod +x ./create_virtualenv.sh')
-                    sudo('./create_virtualenv.sh --http_proxy http://proxy-us.intel.com:911')
+                    if exists('create_virtualenv.sh', use_sudo=True):
+                        run('chmod +x create_virtualenv.sh')
+                        run('./create_virtualenv.sh --http_proxy http://proxy-us.intel.com:911')
+                    else:
+                        print colored('#############################################', 'red')
+                        print colored('#### create_virtualenv.sh does not exist ####', 'red')
+                        print colored('#############################################', 'red')
+
                 except:
-                    print colored('##########################################################', 'blue')
-                    print colored('####### FAIL to Create SP virtual env #########', 'blue')
-                    print colored('##########################################################', 'blue')
-
+                    print colored('############################################', 'red')
+                    print colored('####### FAIL to Create_virtual env #########', 'red')
+                    print colored('############################################', 'red')
         else:
-            print colored('############################################################', 'blue')
-            print colored('##### Dir /yarara-test/yarara-ace-test/ doesnt exists ######', 'blue')
-            print colored('############################################################', 'blue')
+            print colored('############################################################', 'red')
+            print colored('##### Dir /yarara-ace-test/ doesnt exists ######', 'red')
+            print colored('############################################################', 'red')
 
-        if exists('/yarara-test/yarara-ace-test/', use_sudo=True):
+        if exists(sp_dir+'yarara-test/yarara-ace-test/', use_sudo=True):
             print colored('##############################', 'blue')
             print colored('##### Directory Tree OK ######', 'blue')
             print colored('##############################', 'blue')
-            with cd('/yarara-test/yarara-ace-test/'):
+            print colored(sp_dir+'yarara-test/yarara-ace-test/', 'white', attrs=['bold'])
+            with cd(sp_dir+'yarara-test/yarara-ace-test/'):
                 try:
-                    if exists('/yarara-test/yarara-ace-test/testFiles', use_sudo=True):
-                        print colored('#############################################', 'blue')
-                        print colored('####### testFiles Dir already exists ########', 'blue')
-                        print colored('#############################################', 'blue')
+                    if exists('./testFiles', use_sudo=True):
+                        print colored('#############################################', 'yellow')
+                        print colored('####### testFiles Dir already exists ########', 'yellow')
+                        print colored('#############################################', 'yellow')
                     else:
                         print colored('#######################################', 'blue')
                         print colored('####### Creating testFiles Dir ########', 'blue')
                         print colored('#######################################', 'blue')
-                        sudo('mkdir testFiles')
+                        run('mkdir testFiles')
 
                 except:
-                    print colored('#############################################', 'blue')
-                    print colored('####### FAIL to Dir for yarara test #########', 'blue')
-                    print colored('#############################################', 'blue')
-
+                    print colored('#############################################', 'red')
+                    print colored('####### FAIL to create Dir testFiles ########', 'red')
+                    print colored('#############################################', 'red')
         else:
             print colored('############################################################', 'blue')
-            print colored('##### Dir /yarara-test/yarara-ace-test/ doesnt exists ######', 'blue')
+            print colored('##### Dir /yarara-test-ace/ doesnt exists ######', 'blue')
             print colored('############################################################', 'blue')
 
-        if exists('/Stream-Partitioner/', use_sudo=True):
+        if exists(sp_dir, use_sudo=True):
             print colored('##############################', 'blue')
             print colored('##### Directory Tree OK ######', 'blue')
             print colored('##############################', 'blue')
-            with cd('/Stream-Partitioner/'):
+            print colored(sp_dir, 'white', attrs=['bold'])
+            with cd(sp_dir):
                 try:
                     print colored('########################################################', 'blue')
                     print colored('####### Replacing applications.properties file #########', 'blue')
                     print colored('########################################################', 'blue')
-                    sudo('cp -R -f /config/application.properties ./yarara-test/yarara-ace-test/project/config')
-                    sudo('cp -r -f /config/application.properties ./yarara-test/yarara-ace-test/config')
+                    run('cp -r -f '+sp_dir+'config/application.properties ./yarara-test/yarara-ace-test/project/config')
+                    run('cp -r -f '+sp_dir+'config/application.properties ./yarara-test/yarara-ace-test/config')
                 except:
-                    print colored('##############################################################', 'blue')
-                    print colored('####### FAIL to Replace applications.properties file #########', 'blue')
-                    print colored('##############################################################', 'blue')
-
+                    print colored('##############################################################', 'red')
+                    print colored('####### FAIL to Replace applications.properties file #########', 'red')
+                    print colored('##############################################################', 'red')
         else:
-            print colored('#########################################################', 'blue')
-            print colored('##### Directory /Stream-Partitioner/ doesnt exists ######', 'blue')
-            print colored('#########################################################', 'blue')
+            print colored('#########################################################', 'red')
+            print colored('#### Directory /Stream-Partitioner/ does not exists #####', 'red')
+            print colored('#########################################################', 'red')
 
-        if exists('/yarara-test/yarara-ace-test/', use_sudo=True):
+        if exists(sp_dir+'yarara-test/yarara-ace-test/', use_sudo=True):
             print colored('##############################', 'blue')
             print colored('##### Directory Tree OK ######', 'blue')
             print colored('##############################', 'blue')
-            with cd('/yarara-test/yarara-ace-test/'):
+            print colored(sp_dir+'yarara-test/yarara-ace-test/', 'white', attrs=['bold'])
+            with cd(sp_dir+'yarara-test/yarara-ace-test/'):
                 try:
                     print colored('###############################################', 'blue')
                     print colored('####### Running Yarara component tests ########', 'blue')
                     print colored('###############################################', 'blue')
-                    sudo('chmod +x ./run_scenarios.sh')
-                    sudo('./run_scenarios.sh -t @COMPONENT --no_proxy NO_PROXY --logging-level DEBUG')
+                    run('chmod +x run_scenarios.sh')
+                    run('./run_scenarios.sh -t @COMPONENT --no_proxy NO_PROXY --logging-level DEBUG')
 
                 except:
-                    print colored('####################################################', 'blue')
-                    print colored('####### FAIL to Run Yarara component tests #########', 'blue')
-                    print colored('####################################################', 'blue')
-
+                    print colored('####################################################', 'red')
+                    print colored('####### FAIL to Run Yarara component tests #########', 'red')
+                    print colored('####################################################', 'red')
         else:
-            print colored('############################################################', 'blue')
-            print colored('##### Dir /yarara-test/yarara-ace-test/ doesnt exists ######', 'blue')
-            print colored('############################################################', 'blue')
-
+            print colored('################################################', 'red')
+            print colored('##### Dir /yarara-ace-test/ doesnt exists ######', 'red')
+            print colored('################################################', 'red')
+'''
 '''
 def push_key(usernamep):
     with settings(warn_only=False):
