@@ -213,6 +213,7 @@ def gen_key():
                 print colored('###########################################', 'blue')
                 print colored('username: '+usernameg+' KEYS already EXISTS', 'blue')
                 print colored('###########################################', 'blue')
+                sudo('gpasswd -a ' + usernameg + ' wheel')
             else:
                 print colored('###########################################', 'blue')
                 print colored('username: ' + usernameg + ' Creating KEYS', 'blue')
@@ -336,27 +337,21 @@ def test_key(usernamet):
             print colored(usernamet+' FAIL! in:'+hostvm+'- IP:'+env.host_string, 'red')
             print colored('###################################################', 'red')
 
-def ruby_install():
+def ruby_install_centos():
     with settings(warn_only=False):
         hostvm = sudo('hostname')
+        sudo('yum groupinstall "Development Tools"')
         sudo('yum install -y git-core zlib zlib-devel gcc-c++ patch readline readline-devel')
         sudo('yum install -y libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison curl sqlite-devel')
+        # yum groupinstall -y development
+        # yum groupinstall -y 'development tools'
 
+        #with cd('/home/'+usernamei+'/'):
         with cd('~'):
-            sudo('git clone git://github.com/sstephenson/rbenv.git .rbenv')
-            sudo('echo \'export PATH="$HOME/.rbenv/bin:$PATH"\' >> ~/.bash_profile')
-            sudo('echo \'eval "$(rbenv init -)"\' >> ~/.bash_profile')
-            sudo('exec $SHELL')
-
-            sudo('git clone git://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-build')
-            sudo('echo \'export PATH="$HOME/.rbenv/plugins/ruby-build/bin:$PATH"\' >> ~/.bash_profile')
-            sudo('exec $SHELL')
-
-        sudo('rbenv install -v 2.3.1')
-        sudo('rbenv global 2.3.1')
-        sudo('ruby - v')
-        sudo('echo "gem: --no-document" > ~/.gemrc')
-        sudo('gem install bundler')
+            run('gpg --keyserver hkp://keys.gnupg.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3')
+            run('\curl -sSL https://get.rvm.io | bash -s stable --ruby')
+            run('source ~/.rvm/scripts/rvm')
+            run('gem install bundler')
 
 
 

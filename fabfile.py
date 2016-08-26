@@ -31,7 +31,7 @@ def lxd():
             print colored('##### LDX already Installed ######', 'blue')
             print colored('##################################', 'blue')
         else:
-            sudo('add-apt-repository -y ppa:ubuntu-lxc/lxd-stable')
+            sudo('sudo apt-get -y install lxd')
 
         #Add the public LinuxContainers.org image repository by running
         sudo('lxc remote add lxc-org images.linuxcontainers.org')
@@ -97,16 +97,33 @@ def lxd():
         sudo('lxc exec lxd-centos-01 -- yum clean all')
         sudo('lxc exec lxd-centos-01 -- yum install -y gcc glibc glibc-common gd gd-devel')
         sudo('lxc exec lxd-centos-01 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients')
-        sudo('lxc exec lxd-centos-01 -- yum install -y epel-release ruby')
+        sudo('lxc exec lxd-centos-01 -- yum install -y epel-release ')
+
+        print colored('#########################################', 'blue')
+        print colored('##### INSTALLING RUBY DEPENDENCIES ######', 'blue')
+        print colored('#########################################', 'blue')
+        #sudo('lxc exec lxd-centos-01 -- yum ruby ruby-devel rubygems')
+        #yum groupinstall -y development
+        #yum groupinstall -y 'development tools'
+        sudo('yum groupinstall "Development Tools"')
+
+        print colored('#########################################', 'blue')
+        print colored('####### INSTALLING PYTHON FABRIC ########', 'blue')
+        print colored('#########################################', 'blue')
         sudo('lxc exec lxd-centos-01 -- yum install -y python-pip')
         sudo('lxc exec lxd-centos-01 -- pip install --upgrade pip')
         sudo('lxc exec lxd-centos-01 -- pip install fabric')
         sudo('lxc exec lxd-centos-01 -- pip install termcolor')
-        sudo('gem install bundler')
+
+        print colored('#########################################', 'blue')
+        print colored('######### INSTALLING SSH SERVER #########', 'blue')
+        print colored('#########################################', 'blue')
         sudo('lxc exec lxd-centos-01 -- chkconfig sshd on')
         sudo('lxc exec lxd-centos-01 -- service sshd start')
 
         sudo('lxc file push /vagrant/scripts/* lxd-centos-01/root/')
+        #sudo('lxc file push ../chef/instaler/* lxd-centos-01/root/')
+        #sudo('lxc exec lxd-centos-01 -- rpm -Uvh chefdk-0.17.17-1.el7.x86_64.rpm')
         #sudo('lxc file push /vagrant/scripts/out_users_test.txt lxd-centos-01/root/')
 
         print colored('###########################', 'blue')
