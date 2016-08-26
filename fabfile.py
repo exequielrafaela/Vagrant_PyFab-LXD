@@ -97,7 +97,7 @@ def lxd():
         print colored('#########################################', 'blue')
         print colored('####### SYNC FILES WITH LXD HOST ######', 'blue')
         print colored('#########################################', 'blue')
-        sudo('lxc file push ../scripts/* lxd-centos-01/root/')
+        sudo('lxc file push /vagrant/scripts/* lxd-centos-01/root/')
 
         print colored('#########################################', 'blue')
         print colored('####### INSTALLING PYTHON FABRIC ########', 'blue')
