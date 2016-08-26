@@ -10,9 +10,6 @@ def lxd():
         print colored('##################################', 'blue')
 
         # Add the PPA repository for LXD/LXC stable
-        # sudo('if [[ ! -e "/etc/apt/sources.list.d/ubuntu-lxc-lxd-stable-trusty.list" ]]; then '
-        #    'sudo add-apt-repository -y ppa:ubuntu-lxc/lxd-stable; '
-        # 'fi')
         if exists('/etc/apt/sources.list.d/ubuntu-lxc-lxd-stable-trusty.list', use_sudo=True):
             print colored('##################################', 'blue')
             print colored('##### LDX repo already add #######', 'blue')
@@ -23,9 +20,6 @@ def lxd():
         sudo('apt-get update')
 
         # Install LXC/LXD if not already installed
-        # sudo('if [[ ! -e "/usr/bin/lxd" ]]; then '
-        #    'sudo apt-get -y install lxd; '
-        # 'fi')
         if exists('/usr/bin/lxd', use_sudo=True):
             print colored('##################################', 'blue')
             print colored('##### LDX already Installed ######', 'blue')
@@ -69,6 +63,7 @@ def lxd():
 
         sudo('lxc images list')
 
+        #Virtual Switch/Bridge Configuration
         sudo('dpkg-reconfigure -p medium lxd')
 
         sudo('lxc list')
@@ -95,17 +90,14 @@ def lxd():
         sudo('lxc exec lxd-centos-01 -- dhclient eth0 -r')
         sudo('lxc exec lxd-centos-01 -- dhclient eth0')
         sudo('lxc exec lxd-centos-01 -- yum clean all')
-        sudo('lxc exec lxd-centos-01 -- yum install -y gcc glibc glibc-common gd gd-devel')
+        sudo('lxc exec lxd-centos-01 -- yum install -y gcc glibc glibc-common gd gd-devel wget')
         sudo('lxc exec lxd-centos-01 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients')
         sudo('lxc exec lxd-centos-01 -- yum install -y epel-release ')
 
         print colored('#########################################', 'blue')
-        print colored('##### INSTALLING RUBY DEPENDENCIES ######', 'blue')
+        print colored('####### SYNC FILES WITH LXD HOST ######', 'blue')
         print colored('#########################################', 'blue')
-        #sudo('lxc exec lxd-centos-01 -- yum ruby ruby-devel rubygems')
-        #yum groupinstall -y development
-        #yum groupinstall -y 'development tools'
-        sudo('yum groupinstall "Development Tools"')
+        sudo('lxc file push ../chef/instaler/* lxd-centos-01/root/')
 
         print colored('#########################################', 'blue')
         print colored('####### INSTALLING PYTHON FABRIC ########', 'blue')
@@ -114,17 +106,13 @@ def lxd():
         sudo('lxc exec lxd-centos-01 -- pip install --upgrade pip')
         sudo('lxc exec lxd-centos-01 -- pip install fabric')
         sudo('lxc exec lxd-centos-01 -- pip install termcolor')
+        sudo('lxc exec lxd-centos-01 -- pip install iptools')
 
         print colored('#########################################', 'blue')
         print colored('######### INSTALLING SSH SERVER #########', 'blue')
         print colored('#########################################', 'blue')
         sudo('lxc exec lxd-centos-01 -- chkconfig sshd on')
         sudo('lxc exec lxd-centos-01 -- service sshd start')
-
-        sudo('lxc file push /vagrant/scripts/* lxd-centos-01/root/')
-        #sudo('lxc file push ../chef/instaler/* lxd-centos-01/root/')
-        #sudo('lxc exec lxd-centos-01 -- rpm -Uvh chefdk-0.17.17-1.el7.x86_64.rpm')
-        #sudo('lxc file push /vagrant/scripts/out_users_test.txt lxd-centos-01/root/')
 
         print colored('###########################', 'blue')
         print colored('### CLIENT PROVISIONING ###', 'blue')
@@ -134,7 +122,7 @@ def lxd():
         sudo('lxc exec lxd-centos-02 -- dhclient eth0 -r')
         sudo('lxc exec lxd-centos-02 -- dhclient eth0')
         sudo('lxc exec lxd-centos-02 -- yum clean all')
-        sudo('lxc exec lxd-centos-02 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients')
+        sudo('lxc exec lxd-centos-02 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients wget')
         sudo('lxc exec lxd-centos-02 -- chkconfig sshd on')
         sudo('lxc exec lxd-centos-02 -- service sshd start')
 
@@ -142,7 +130,7 @@ def lxd():
         sudo('lxc exec lxd-centos-03 -- dhclient eth0 -r')
         sudo('lxc exec lxd-centos-03 -- dhclient eth0')
         sudo('lxc exec lxd-centos-03 -- yum clean all')
-        sudo('lxc exec lxd-centos-03 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients')
+        sudo('lxc exec lxd-centos-03 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients wget')
         sudo('lxc exec lxd-centos-03 -- chkconfig sshd on')
         sudo('lxc exec lxd-centos-03 -- service sshd start')
 

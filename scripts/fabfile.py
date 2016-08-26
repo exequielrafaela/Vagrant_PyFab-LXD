@@ -17,6 +17,7 @@ import logging
 #import apt
 import yum
 import pwd
+import iptools
 
 # As a good practice we can log the state of each phase in our script.
 #  https://docs.python.org/2.7/howto/logging.html
@@ -213,7 +214,6 @@ def gen_key():
                 print colored('###########################################', 'blue')
                 print colored('username: '+usernameg+' KEYS already EXISTS', 'blue')
                 print colored('###########################################', 'blue')
-                sudo('gpasswd -a ' + usernameg + ' wheel')
             else:
                 print colored('###########################################', 'blue')
                 print colored('username: ' + usernameg + ' Creating KEYS', 'blue')
@@ -303,9 +303,19 @@ def test_key(usernamet):
         hostvm = sudo('hostname')
         local('sudo chmod 701 /home/' + usernamet)
         local('sudo chmod 741 /home/' + usernamet + '/.ssh')
+        local_user=getpass.getuser()
+        if (os.path.exists('/home/'+local_user+'/temp/')):
+            print colored('##################################', 'blue')
+            print colored('##### Directory Exists ###########', 'blue')
+            print colored('##################################', 'blue')
+        else:
+            local('mkdir ~/temp')
+
+        local('sudo cp /home/'+usernamet+'/.ssh/id_rsa ~/temp/id_rsa')
+        local('sudo chown -R '+local_user+':'+local_user+' ~/temp/id_rsa')
         #local('sudo chmod 604 /home/' + usernamet + '/.ssh/id_rsa')
 
-        # PENDING FIX - Must copy the key temporaly with the proper permissions
+        # FIX DONE! - Must copy the key temporaly with the proper permissions
         # in the home directory of the current user executing fabric to use it.
         # Temporally we comment the line 379 and the script must be run by
         # user that desires to test it keys
@@ -324,14 +334,15 @@ def test_key(usernamet):
         #' but just to be able to use your key files.
 
         if (os.path.exists('/home/'+usernamet+'/.ssh/')):
-            ssh_test = local('ssh -i /home/'+usernamet+'/.ssh/id_rsa -o "StrictHostKeyChecking no" -q '+usernamet+'@'+env.host_string+' exit')
+            ssh_test = local('ssh -i ~/temp/id_rsa -o "StrictHostKeyChecking no" -q '+usernamet+'@'+env.host_string+' exit')
             if (ssh_test.succeeded):
                 print colored('###################################################', 'blue')
                 print colored(usernamet+' WORKED! in:'+hostvm+' IP:'+env.host_string, 'blue')
                 print colored('###################################################', 'blue')
                 local('sudo chmod 700 /home/'+usernamet)
                 local('sudo chmod 700 /home/'+usernamet+'/.ssh')
-                local('sudo chmod 600 /home/'+usernamet+'/.ssh/id_rsa')
+                #local('sudo chmod 600 /home/'+usernamet+'/.ssh/id_rsa')
+                local('sudo rm ~/temp/id_rsa')
         else:
             print colored('###################################################', 'red')
             print colored(usernamet+' FAIL! in:'+hostvm+'- IP:'+env.host_string, 'red')
@@ -339,12 +350,12 @@ def test_key(usernamet):
 
 def ruby_install_centos():
     with settings(warn_only=False):
-        hostvm = sudo('hostname')
+        # sudo('yum ruby ruby-devel rubygems')
+        # yum groupinstall -y development
+        # yum groupinstall -y 'development tools'
         sudo('yum groupinstall "Development Tools"')
         sudo('yum install -y git-core zlib zlib-devel gcc-c++ patch readline readline-devel')
         sudo('yum install -y libyaml-devel libffi-devel openssl-devel make bzip2 autoconf automake libtool bison curl sqlite-devel')
-        # yum groupinstall -y development
-        # yum groupinstall -y 'development tools'
 
         #with cd('/home/'+usernamei+'/'):
         with cd('~'):
@@ -353,6 +364,78 @@ def ruby_install_centos():
             run('source ~/.rvm/scripts/rvm')
             run('gem install bundler')
 
+def chefzero_install_centos():
+    with settings(warn_only=False):
+        run('wget -P /tmp/ https://packages.chef.io/stable/el/7/chefdk-0.17.17-1.el7.x86_64.rpm')
+        run('rpm -Uvh /tmp/chefdk-0.17.17-1.el7.x86_64.rpm')
+
+        knifezero_inst = run('chef gem list | grep knife-zero')
+        if(knifezero_inst ==""):
+            run('chef gem install knife-zero')
+        else:
+            print colored('##############################################', 'blue')
+            print colored('##### knife-zero already installed ###########', 'blue')
+            print colored('##############################################', 'blue')
+
+        if exists('/opt/chefdk/embedded/bin/knife', use_sudo=True):
+            print colored('###########################################', 'blue')
+            print colored('##### Knife-zero correctly installed ######', 'blue')
+            print colored('###########################################', 'blue')
+        else:
+            print colored('###########################################', 'red')
+            print colored('###### Check chef-zero installation #######', 'red')
+            print colored('###########################################', 'red')
+
+def nfs_server(nfs_dir):
+    with settings(warn_only=False):
+        sudo('yum install -y nfs-utils libnfsidmap libnfsidmap-devel nfs4-acl-tools')
+
+        if exists('/var/'+nfs_dir, use_sudo=True):
+            print colored('###########################################', 'blue')
+            print colored('####### Directory already created #########', 'blue')
+            print colored('###########################################', 'blue')
+        else:
+            print colored('###########################################', 'red')
+            print colored('###### Creating NFS share Directory #######', 'red')
+            print colored('###########################################', 'red')
+            sudo('mkdir /var/'+nfs_dir)
+            sudo('chmod -R 777 /var/'+nfs_dir+'/')
+
+        ip_addr=sudo('ifconfig eth0 | awk \'/inet /{print substr($2,1)}\'')
+        netmask=sudo('ifconfig eth0 | awk \'/inet /{print substr($4,1)}\'')
+        subnet_temp = iptools.ipv4.subnet2block(str(ip_addr) + '/' + str(netmask))
+        subnet = subnet_temp[0]
+        #sudo('echo "/var/' + nfs_dir + '     ' + subnet + '/' + netmask + '(rw,sync,no_root_squash,no_all_squash)" > /etc/exports')
+        sudo('echo "/var/'+nfs_dir+'     *(rw,sync,no_root_squash)" > /etc/exports')
+
+        #sudo('sudo exportfs -a')
+
+        sudo('systemctl enable rpcbind')
+        sudo('systemctl start rpcbind')
+
+        sudo('systemctl enable nfs-server')
+        sudo('systemctl start nfs-server')
+
+        #sudo firewall-cmd --zone=public --add-service=nfs --permanent
+        #sudo firewall-cmd --zone=public --add-service=rpc-bind --permanent
+        #sudo firewall-cmd --zone=public --add-service=mountd --permanent
+        #sudo firewall-cmd --reload
+
+def nfs_client(nfs_dir,nfs_server_ip):
+    with settings(warn_only=False):
+        sudo('yum install -y nfs-utils')
+        sudo('mkdir -p /mnt/nfs/var/'+nfs_dir)
+        sudo('mount -t nfs '+nfs_server_ip+':/var/'+nfs_dir+' /mnt/nfs/var/'+nfs_dir+'/')
+        run('df - kh | grep nfs')
+        run('mount | grep nfs')
+
+        try:
+            run('touch /mnt/nfs/var/nfsshare/test_nfs')
+
+        except:
+            print colored('###########################################', 'red')
+            print colored('###### Check chef-zero installation #######', 'red')
+            print colored('###########################################', 'red')
 
 
 '''
