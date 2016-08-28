@@ -1,4 +1,4 @@
-from fabric.api import run, sudo, settings, hide, put
+from fabric.api import run, sudo, settings, hide, put, cd
 from fabric.contrib.files import exists
 from termcolor import colored
 
@@ -44,11 +44,20 @@ def lxd():
         centos_img = sudo('lxc image list | grep "Centos 7"')
         if (centos_img != ""):
             print colored('##############################################', 'blue')
-            print colored('#### LXC Ubuntu Trusty IMG already exists ####', 'blue')
+            print colored('#### LXC Centos 7 x64 IMG already exists #####', 'blue')
             print colored('##############################################', 'blue')
         else:
             sudo('lxc image copy lxc-org:/centos/7/amd64 local: --alias=centos764')
 
+        centos_img = sudo('lxc image list | grep "Centos 6"')
+        if (centos_img != ""):
+            print colored('##############################################', 'blue')
+            print colored('#### LXC Centos 6 x64 IMG already exists #####', 'blue')
+            print colored('##############################################', 'blue')
+        else:
+            sudo('lxc image copy lxc-org:/centos/6/amd64 local: --alias=centos664')
+
+        print colored('                          ', 'blue')
         print colored('##########################', 'blue')
         print colored('###### LXD PROVISION #####', 'blue')
         print colored('##########################', 'blue')
@@ -57,20 +66,28 @@ def lxd():
         # image (which is an alias for the image you copied in thre previous step).
         #sudo('lxc launch trusty32 lxd-ubuntu-01')
         #sudo('lxc launch images:centos/7/amd64 my-container')
-        sudo('lxc launch centos764 lxd-centos-01')
+        sudo('lxc launch centos664 lxd-centos-01')
         sudo('lxc launch centos764 lxd-centos-02')
         sudo('lxc launch centos764 lxd-centos-03')
 
-        sudo('lxc images list')
+        sudo('lxc image list')
 
         #Virtual Switch/Bridge Configuration
-        sudo('dpkg-reconfigure -p medium lxd')
+        lxd_bridge = sudo('ip address show | grep lxdbr')
+        if (lxd_bridge == ""):
+            sudo('dpkg-reconfigure -p medium lxd')
+        else:
+            print colored('##################################', 'blue')
+            print colored('##### NETWORK CONFIGURATION ######', 'blue')
+            print colored('##################################', 'blue')
+            print(lxd_bridge)
 
+        #List the configured LXD Conteiners
         sudo('lxc list')
 
         print colored('1) Run file /bin/ls and note the output. (You will use the output for comparison in just a moment.)', 'green')
         print colored('##########################', 'green')
-        print colored('2) Open a shell in the 32-bit container you launched in step 8 with the command:', 'green')
+        print colored('2) Open a shell in the 32-bit container you launched in previous step with the command:', 'green')
         print colored('lxc exec lxd-test-01 bash', 'green')
         print colored('##########################', 'green')
         print colored('3) Inside the container, run file /bin/ls and compare the output to the output of the same command you ran', 'green')
@@ -81,6 +98,13 @@ def lxd():
         print colored('##########################', 'green')
         print colored('5) The container is still running, so stop the container with:', 'green')
         print colored('lxc stop lxd-test-01.', 'green')
+
+        print colored('##########################', 'red')
+
+        print colored('Its NOT currently possible to mount NFS in an LXC Contenier')
+        print colored('Nothing that LXD can really do about it, nfs in the upstream')
+        print colored('kernel would need userns support, after which things will just start working.')
+        print colored('##########################', 'red')
 
         print colored('###########################', 'blue')
         print colored('## JUMPHOST PROVISIONING ##', 'blue')
@@ -93,11 +117,6 @@ def lxd():
         sudo('lxc exec lxd-centos-01 -- yum install -y gcc glibc glibc-common gd gd-devel wget')
         sudo('lxc exec lxd-centos-01 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients')
         sudo('lxc exec lxd-centos-01 -- yum install -y epel-release ')
-
-        print colored('#########################################', 'blue')
-        print colored('####### SYNC FILES WITH LXD HOST ######', 'blue')
-        print colored('#########################################', 'blue')
-        sudo('lxc file push /vagrant/scripts/* lxd-centos-01/root/')
 
         print colored('#########################################', 'blue')
         print colored('####### INSTALLING PYTHON FABRIC ########', 'blue')
@@ -118,21 +137,34 @@ def lxd():
         print colored('### CLIENT PROVISIONING ###', 'blue')
         print colored('###########################', 'blue')
 
-        sudo('lxc exec lxd-centos-02 -- echo root:toor | chpasswd')
-        sudo('lxc exec lxd-centos-02 -- dhclient eth0 -r')
-        sudo('lxc exec lxd-centos-02 -- dhclient eth0')
-        sudo('lxc exec lxd-centos-02 -- yum clean all')
-        sudo('lxc exec lxd-centos-02 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients wget')
-        sudo('lxc exec lxd-centos-02 -- chkconfig sshd on')
-        sudo('lxc exec lxd-centos-02 -- service sshd start')
+        for i in range (2,4):
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- echo root:toor | chpasswd')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- dhclient eth0 -r')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- dhclient eth0')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- yum clean all')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients wget')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- chkconfig sshd on')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- service sshd start')
+            lxc_ip_addr = sudo('lxc exec lxd-centos-0'+str(i)+' -- ifconfig eth0 | awk \'/inet /{print substr($2,1)}\'')
+            if(i == 2):
+                with open("./scripts/out_users_test.txt", "w") as file1:
+                    file1.write(lxc_ip_addr+'\n')
+                    print(file1)
+            elif(i > 2):
+                with open("./scripts/out_users_test.txt", "a") as file2:
+                    file2.write(lxc_ip_addr+'\n')
+                    print(file2)
+            else:
+                print colored('#########################################', 'blue')
+                print colored('### CHECK THE FOR STATEMENT BOUNDRIES ###', 'blue')
+                print colored('#########################################', 'blue')
 
-        sudo('lxc exec lxd-centos-03 -- echo root:toor | chpasswd')
-        sudo('lxc exec lxd-centos-03 -- dhclient eth0 -r')
-        sudo('lxc exec lxd-centos-03 -- dhclient eth0')
-        sudo('lxc exec lxd-centos-03 -- yum clean all')
-        sudo('lxc exec lxd-centos-03 -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients wget')
-        sudo('lxc exec lxd-centos-03 -- chkconfig sshd on')
-        sudo('lxc exec lxd-centos-03 -- service sshd start')
+        print colored('#################################################', 'blue')
+        print colored('######## SYNC FILES WITH LXD BASTION HOST #######', 'blue')
+        print colored('#################################################', 'blue')
+        sudo('lxc file push /vagrant/scripts/* lxd-centos-01/root/')
+        #lxc file push /vagrant/scripts/* lxd-centos-01/home/ebarrirero/; lxc exec lxd-centos-01 -- chown -R ebarrirero:ebarrirero /home/ebarrirero/
+
 
         print colored('######################################', 'blue')
         print colored('FIREWALL - NAT TABLE STATUS:      ', 'blue')

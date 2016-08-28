@@ -45,7 +45,21 @@ env.roledefs = {
 # Fabric user and pass.
 env.user = "root"
 env.password = "toor"
+env.pararel=True
 env.shell = "/bin/sh -c"
+
+def command(cmd):
+    with settings(warn_only=False):
+        run(cmd)
+
+def sudo_command(cmd):
+    with settings(warn_only=False):
+        sudo(cmd)
+        #eg : fab sudo_command:"apt-get install geany"
+
+def sudoers_group():
+    with settings(warn_only=False):
+        sudo('echo "%wheel        ALL=(ALL)       NOPASSWD: ALL" | (EDITOR="tee -a" visudo)')
 
 def apt_package(action,package):
     with settings(warn_only=False):
@@ -159,8 +173,8 @@ def yum_package(action, package):
             print colored('Usage eg2: $ fab -R dev yum_package:upgrade,gcc', 'red')
             print colored('############################################################################', 'blue')
 
-def add_user(usernamec):
-    with settings(warn_only=False):
+def add_user_centos(usernamec):
+    with settings(warn_only=True):
         #usernamep = prompt("Which USERNAME you like to CREATE & PUSH KEYS?")
         #user_exists = sudo('cat /etc/passwd | grep '+usernamep)
         #user_exists =sudo('grep "^'+usernamep+':" /etc/passwd')
@@ -187,17 +201,39 @@ def add_user(usernamec):
                 sudo('gpasswd -a ' + usernamep + ' wheel')
         except:
         ##else:
+            #print colored('######################################################', 'green')
+            #print colored('"' + usernamec + '" couldnt be created for some reason', 'green')
+            #print colored('######################################################', 'green')
             print colored('#################################', 'green')
             print colored('"' + usernamec + '" doesnt exists', 'green')
             print colored('WILL BE CREATED', 'green')
             print colored('##################################', 'green')
             sudo('useradd ' + usernamec + ' -m -d /home/' + usernamec)
-            #sudo('echo "'+usernamep+':'+usernamep+'" | chpasswd')
             sudo('gpasswd -a ' + usernamec + ' wheel')
 
-def gen_key():
+def change_pass(usernameu,upass):
     with settings(warn_only=False):
-        usernameg = prompt("Which USERNAME you like to GEN KEYS?")
+        try:
+        ##if(user_exists != ""):
+            user_exists = sudo('cut -d: -f1 /etc/passwd | grep '+usernameu)
+            if (user_exists != ""):
+                print colored('#######################################', 'green')
+                print colored('"' + usernameu + '" PASSWORD will be changed', 'green')
+                print colored('#######################################', 'green')
+                sudo('echo '+usernameu+':'+upass+' | chpasswd')
+            else:
+                print colored('#################################', 'red')
+                print colored('"' + usernameu + '" doesnt exists', 'red')
+                print colored('#################################', 'red')
+        except:
+        ##else:
+            print colored('#################################', 'red')
+            print colored('"' + usernameu + '" doesnt exists', 'red')
+            print colored('##################################', 'red')
+
+def gen_key(usernameg):
+    with settings(warn_only=False):
+        #usernameg = prompt("Which USERNAME you like to GEN KEYS?")
         #user_exists = sudo('cut -d: -f1 /etc/passwd | grep '+usernameg)
         #user_exists = sudo('cat /etc/passwd | grep ' + usernameg)
         try:
@@ -366,27 +402,46 @@ def ruby_install_centos():
 
 def chefzero_install_centos():
     with settings(warn_only=False):
-        run('wget -P /tmp/ https://packages.chef.io/stable/el/7/chefdk-0.17.17-1.el7.x86_64.rpm')
-        run('rpm -Uvh /tmp/chefdk-0.17.17-1.el7.x86_64.rpm')
+        if exists('/tmp/chefdk-0.17.17-1.el7.x86_64.rpm', use_sudo=True):
+            print colored('###################################################', 'blue')
+            print colored('##### Chef Development Kit already installed ######', 'blue')
+            print colored('####################################################', 'blue')
+        else:
+            print colored('######################################################', 'red')
+            print colored('###### Chef Development Kit will be installed  #######', 'red')
+            print colored('######################################################', 'red')
+            run('wget -P /tmp/ https://packages.chef.io/stable/el/7/chefdk-0.17.17-1.el7.x86_64.rpm')
+            run('rpm -Uvh /tmp/chefdk-0.17.17-1.el7.x86_64.rpm')
 
-        knifezero_inst = run('chef gem list | grep knife-zero')
-        if(knifezero_inst ==""):
+        try:
+            knifezero_inst = run('chef gem list | grep knife-zero')
+            if(knifezero_inst ==""):
+                run('chef gem install knife-zero')
+            else:
+                print colored('##############################################', 'blue')
+                print colored('##### knife-zero already installed ###########', 'blue')
+                print colored('##############################################', 'blue')
+
+            if exists('/opt/chefdk/embedded/bin/knife', use_sudo=True):
+                print colored('###########################################', 'blue')
+                print colored('##### Knife-zero correctly installed ######', 'blue')
+                print colored('###########################################', 'blue')
+            else:
+                print colored('###########################################', 'red')
+                print colored('###### Check chef-zero installation #######', 'red')
+                print colored('###########################################', 'red')
+        except:
             run('chef gem install knife-zero')
-        else:
-            print colored('##############################################', 'blue')
-            print colored('##### knife-zero already installed ###########', 'blue')
-            print colored('##############################################', 'blue')
+            if exists('/opt/chefdk/embedded/bin/knife', use_sudo=True):
+                print colored('###########################################', 'blue')
+                print colored('##### Knife-zero correctly installed ######', 'blue')
+                print colored('###########################################', 'blue')
+            else:
+                print colored('###########################################', 'red')
+                print colored('###### Check chef-zero installation #######', 'red')
+                print colored('###########################################', 'red')
 
-        if exists('/opt/chefdk/embedded/bin/knife', use_sudo=True):
-            print colored('###########################################', 'blue')
-            print colored('##### Knife-zero correctly installed ######', 'blue')
-            print colored('###########################################', 'blue')
-        else:
-            print colored('###########################################', 'red')
-            print colored('###### Check chef-zero installation #######', 'red')
-            print colored('###########################################', 'red')
-
-def nfs_server(nfs_dir):
+def nfs_server_centos7(nfs_dir):
     with settings(warn_only=False):
         sudo('yum install -y nfs-utils libnfsidmap libnfsidmap-devel nfs4-acl-tools')
 
@@ -421,7 +476,7 @@ def nfs_server(nfs_dir):
         #sudo firewall-cmd --zone=public --add-service=mountd --permanent
         #sudo firewall-cmd --reload
 
-def nfs_client(nfs_dir,nfs_server_ip):
+def nfs_client_centos7(nfs_dir,nfs_server_ip):
     with settings(warn_only=False):
         sudo('yum install -y nfs-utils')
         sudo('mkdir -p /mnt/nfs/var/'+nfs_dir)
@@ -437,6 +492,231 @@ def nfs_client(nfs_dir,nfs_server_ip):
             print colored('###### Check chef-zero installation #######', 'red')
             print colored('###########################################', 'red')
 
+def nfs_server_centos6(nfs_dir):
+    with settings(warn_only=False):
+        sudo('yum install -y nfs-utils nfs-utils-lib')
+
+        if exists('/var/'+nfs_dir, use_sudo=True):
+            print colored('###########################################', 'blue')
+            print colored('####### Directory already created #########', 'blue')
+            print colored('###########################################', 'blue')
+        else:
+            print colored('###########################################', 'red')
+            print colored('###### Creating NFS share Directory #######', 'red')
+            print colored('###########################################', 'red')
+            sudo('mkdir /var/'+nfs_dir)
+            sudo('chmod -R 777 /var/'+nfs_dir+'/')
+
+        sudo('chkconfig nfs on')
+        sudo('service rpcbind start')
+        sudo('service nfs start')
+
+        ip_addr=sudo('ifconfig eth0 | awk \'/inet /{print substr($2,6)}\'')
+        netmask=sudo('ifconfig eth0 | awk \'/inet /{print substr($4,6)}\'')
+        subnet_temp = iptools.ipv4.subnet2block(str(ip_addr) + '/' + str(netmask))
+        subnet = subnet_temp[0]
+        #sudo('echo "/var/' + nfs_dir + '     ' + subnet + '/' + netmask + '(rw,sync,no_root_squash,no_subtree_check)" > /etc/exports')
+        sudo('echo "/var/'+nfs_dir+'     *(rw,sync,no_root_squash)" > /etc/exports')
+
+        sudo('sudo exportfs -a')
+
+        #sudo firewall-cmd --zone=public --add-service=nfs --permanent
+        #sudo firewall-cmd --zone=public --add-service=rpc-bind --permanent
+        #sudo firewall-cmd --zone=public --add-service=mountd --permanent
+        #sudo firewall-cmd --reload
+
+def nfs_client_centos6(nfs_dir,nfs_server_ip):
+    with settings(warn_only=False):
+        sudo('yum install -y nfs-utils nfs-utils-lib')
+        sudo('mkdir -p /mnt/nfs/var/'+nfs_dir+'/')
+        sudo('mount '+nfs_server_ip+':/var/'+nfs_dir+' /mnt/nfs/var/'+nfs_dir)
+        run('df - kh | grep nfs')
+        run('mount | grep nfs')
+
+        try:
+            run('touch /mnt/nfs/var/nfsshare/test_nfs')
+
+        except:
+            print colored('###########################################', 'red')
+            print colored('###### Check NFS Client configuration #####', 'red')
+            print colored('###########################################', 'red')
+
+def nfs_server_ubuntu(nfs_dir):
+    with settings(warn_only=False):
+        sudo('apt-get update')
+        sudo('apt-get -y install nfs-kernel-server')
+
+        if exists('/var/'+nfs_dir, use_sudo=True):
+            print colored('###########################################', 'blue')
+            print colored('####### Directory already created #########', 'blue')
+            print colored('###########################################', 'blue')
+        else:
+            print colored('###########################################', 'red')
+            print colored('###### Creating NFS share Directory #######', 'red')
+            print colored('###########################################', 'red')
+            sudo('mkdir /var/'+nfs_dir)
+            #sudo('chmod -R 777 /var/'+nfs_dir+'/')
+            sudo('chown nobody:nogroup /var/'+nfs_dir+'/')
+
+        #sudo('chkconfig nfs on')
+        #sudo('service rpcbind start')
+        #sudo('service nfs start')
+
+        ip_addr=sudo('ifconfig eth0 | awk \'/inet /{print substr($2,6)}\'')
+        netmask=sudo('ifconfig eth0 | awk \'/inet /{print substr($4,6)}\'')
+        subnet_temp = iptools.ipv4.subnet2block(str(ip_addr) + '/' + str(netmask))
+        subnet = subnet_temp[0]
+        #sudo('echo "/var/' + nfs_dir + '     ' + subnet + '/' + netmask + '(rw,sync,no_root_squash,no_subtree_check)" > /etc/exports')
+        sudo('echo "/var/'+nfs_dir+'     *(rw,sync,no_root_squash)" > /etc/exports')
+
+        sudo('sudo exportfs -a')
+
+        sudo('service nfs-kernel-server start')
+
+        #sudo firewall-cmd --zone=public --add-service=nfs --permanent
+        #sudo firewall-cmd --zone=public --add-service=rpc-bind --permanent
+        #sudo firewall-cmd --zone=public --add-service=mountd --permanent
+        #sudo firewall-cmd --reload
+
+def sp_local():
+    # git init
+    # git remote add origin https://
+    # git pull
+    #!/bin/bash
+    #sudo('apt-get -y update')
+    #sudo('apt-get -y install python-pip python-dev libevent-dev')
+    #sudo('pip install fabric termcolor')
+    with settings(warn_only=False):
+        if exists('/Stream-Partitioner/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+            with cd('/Stream-Partitioner/'):
+                try:
+                    print colored('######################################################', 'blue')
+                    print colored('####### COMPILE String Partitioning w/ MAVEN #########', 'blue')
+                    print colored('######################################################', 'blue')
+                    sudo('mvn install -Dmaven.test.skip=true')
+                except:
+                    print colored('#############################################################', 'blue')
+                    print colored('####### FAIL to COMPILE String Partitioner w/ MAVEN #########', 'blue')
+                    print colored('#############################################################', 'blue')
+
+        else:
+            print colored('#########################################################', 'blue')
+            print colored('##### Directory /Stream-Partitioner/ doesnt exists ######', 'blue')
+            print colored('#########################################################', 'blue')
+
+        if exists('/yarara-test/yarara-ace-test/project/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+            with cd('/yarara-test/yarara-ace-test/project/'):
+                try:
+                    print colored('##################################################', 'blue')
+                    print colored('####### RUN String Partitioner java -jar #########', 'blue')
+                    print colored('##################################################', 'blue')
+                    run('java -jar SP.jar')
+                except:
+                    print colored('##########################################################', 'blue')
+                    print colored('####### FAIL to RUN String Partitioner java -jar #########', 'blue')
+                    print colored('##########################################################', 'blue')
+
+        else:
+            print colored('####################################################################', 'blue')
+            print colored('##### Dir /yarara-test/yarara-ace-test/project/ doesnt exists ######', 'blue')
+            print colored('####################################################################', 'blue')
+
+        if exists('/yarara-test/yarara-ace-test/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+            with cd('/yarara-test/yarara-ace-test/'):
+                try:
+                    print colored('########################################', 'blue')
+                    print colored('####### Creating SP virtual env ########', 'blue')
+                    print colored('########################################', 'blue')
+                    sudo('find . -name create_virtualenv.sh')
+                    sudo('chmod +x ./create_virtualenv.sh')
+                    sudo('./create_virtualenv.sh --http_proxy http://proxy-us.intel.com:911')
+                except:
+                    print colored('##########################################################', 'blue')
+                    print colored('####### FAIL to Create SP virtual env #########', 'blue')
+                    print colored('##########################################################', 'blue')
+
+        else:
+            print colored('############################################################', 'blue')
+            print colored('##### Dir /yarara-test/yarara-ace-test/ doesnt exists ######', 'blue')
+            print colored('############################################################', 'blue')
+
+        if exists('/yarara-test/yarara-ace-test/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+            with cd('/yarara-test/yarara-ace-test/'):
+                try:
+                    if exists('/yarara-test/yarara-ace-test/testFiles', use_sudo=True):
+                        print colored('#############################################', 'blue')
+                        print colored('####### testFiles Dir already exists ########', 'blue')
+                        print colored('#############################################', 'blue')
+                    else:
+                        print colored('#######################################', 'blue')
+                        print colored('####### Creating testFiles Dir ########', 'blue')
+                        print colored('#######################################', 'blue')
+                        sudo('mkdir testFiles')
+
+                except:
+                    print colored('#############################################', 'blue')
+                    print colored('####### FAIL to Dir for yarara test #########', 'blue')
+                    print colored('#############################################', 'blue')
+
+        else:
+            print colored('############################################################', 'blue')
+            print colored('##### Dir /yarara-test/yarara-ace-test/ doesnt exists ######', 'blue')
+            print colored('############################################################', 'blue')
+
+        if exists('/Stream-Partitioner/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+            with cd('/Stream-Partitioner/'):
+                try:
+                    print colored('########################################################', 'blue')
+                    print colored('####### Replacing applications.properties file #########', 'blue')
+                    print colored('########################################################', 'blue')
+                    sudo('cp -R -f /config/application.properties ./yarara-test/yarara-ace-test/project/config')
+                    sudo('cp -r -f /config/application.properties ./yarara-test/yarara-ace-test/config')
+                except:
+                    print colored('##############################################################', 'blue')
+                    print colored('####### FAIL to Replace applications.properties file #########', 'blue')
+                    print colored('##############################################################', 'blue')
+
+        else:
+            print colored('#########################################################', 'blue')
+            print colored('##### Directory /Stream-Partitioner/ doesnt exists ######', 'blue')
+            print colored('#########################################################', 'blue')
+
+        if exists('/yarara-test/yarara-ace-test/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+            with cd('/yarara-test/yarara-ace-test/'):
+                try:
+                    print colored('###############################################', 'blue')
+                    print colored('####### Running Yarara component tests ########', 'blue')
+                    print colored('###############################################', 'blue')
+                    sudo('chmod +x ./run_scenarios.sh')
+                    sudo('./run_scenarios.sh -t @COMPONENT --no_proxy NO_PROXY --logging-level DEBUG')
+
+                except:
+                    print colored('####################################################', 'blue')
+                    print colored('####### FAIL to Run Yarara component tests #########', 'blue')
+                    print colored('####################################################', 'blue')
+
+        else:
+            print colored('############################################################', 'blue')
+            print colored('##### Dir /yarara-test/yarara-ace-test/ doesnt exists ######', 'blue')
+            print colored('############################################################', 'blue')
 
 '''
 def push_key(usernamep):
