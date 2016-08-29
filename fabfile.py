@@ -49,13 +49,13 @@ def lxd():
         else:
             sudo('lxc image copy lxc-org:/centos/7/amd64 local: --alias=centos764')
 
-        centos_img = sudo('lxc image list | grep "Centos 6"')
-        if (centos_img != ""):
-            print colored('##############################################', 'blue')
-            print colored('#### LXC Centos 6 x64 IMG already exists #####', 'blue')
-            print colored('##############################################', 'blue')
-        else:
-            sudo('lxc image copy lxc-org:/centos/6/amd64 local: --alias=centos664')
+        #centos_img = sudo('lxc image list | grep "Centos 6"')
+        #if (centos_img != ""):
+        #    print colored('##############################################', 'blue')
+        #    print colored('#### LXC Centos 6 x64 IMG already exists #####', 'blue')
+        #    print colored('##############################################', 'blue')
+        #else:
+        #   sudo('lxc image copy lxc-org:/centos/6/amd64 local: --alias=centos664')
 
         print colored('                          ', 'blue')
         print colored('##########################', 'blue')
@@ -66,13 +66,14 @@ def lxd():
         # image (which is an alias for the image you copied in thre previous step).
         #sudo('lxc launch trusty32 lxd-ubuntu-01')
         #sudo('lxc launch images:centos/7/amd64 my-container')
-        sudo('lxc launch centos664 lxd-centos-01')
+        sudo('lxc launch centos764 lxd-centos-01')
         sudo('lxc launch centos764 lxd-centos-02')
         sudo('lxc launch centos764 lxd-centos-03')
 
         sudo('lxc image list')
 
         #Virtual Switch/Bridge Configuration
+        #sudo('dpkg-reconfigure -p medium lxd')
         lxd_bridge = sudo('ip address show | grep lxdbr')
         if (lxd_bridge == ""):
             sudo('dpkg-reconfigure -p medium lxd')
@@ -101,9 +102,9 @@ def lxd():
 
         print colored('##########################', 'red')
 
-        print colored('Its NOT currently possible to mount NFS in an LXC Contenier')
-        print colored('Nothing that LXD can really do about it, nfs in the upstream')
-        print colored('kernel would need userns support, after which things will just start working.')
+        print colored('Its NOT currently possible to mount NFS in an LXC Contenier', attrs=['bold'])
+        print colored('Nothing that LXD can really do about it, nfs in the upstream', attrs=['bold'])
+        print colored('kernel would need userns support, after which things will just start working.', attrs=['bold'])
         print colored('##########################', 'red')
 
         print colored('###########################', 'blue')

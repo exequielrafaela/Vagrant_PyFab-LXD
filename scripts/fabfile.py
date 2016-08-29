@@ -8,7 +8,7 @@
 
 # Import Fabric's API module#
 #from fabric.api import *
-from fabric.api import hosts, sudo, settings, hide, env, execute, prompt, run, local, task, put, cd
+from fabric.api import hosts, sudo, settings, hide, env, execute, prompt, run, local, task, put, cd, get
 from fabric.contrib.files import append, exists
 from termcolor import colored
 import os
@@ -42,15 +42,34 @@ env.roledefs = {
     'production': ['user@production.example.com']
 }
 
-# Fabric user and pass.
+# Fabric environmental variables.
 env.user = "root"
 env.password = "toor"
+#env.warn_only=True
 env.pararel=True
 env.shell = "/bin/sh -c"
+env.skip_bad_hosts=True
+env.timeout=5
 
 def command(cmd):
     with settings(warn_only=False):
         run(cmd)
+
+def file_send(localpath,remotepath):
+    with settings(warn_only=False):
+        put(localpath,remotepath,use_sudo=True)
+
+def file_send_mod(localpath,remotepath,modep):
+    with settings(warn_only=False):
+        put(localpath,remotepath,mode=modep,use_sudo=True)
+
+def file_send_oldmod(localpath,remotepath):
+    with settings(warn_only=False):
+        put(localpath,remotepath,mirror_local_mode=True)
+
+def file_get(remotepath, localpath):
+    with settings(warn_only=False):
+        get(remotepath,localpath+"."+env.host)
 
 def sudo_command(cmd):
     with settings(warn_only=False):
@@ -400,7 +419,7 @@ def ruby_install_centos():
             run('source ~/.rvm/scripts/rvm')
             run('gem install bundler')
 
-def chefzero_install_centos():
+def kifezero_install_centos():
     with settings(warn_only=False):
         if exists('/tmp/chefdk-0.17.17-1.el7.x86_64.rpm', use_sudo=True):
             print colored('###################################################', 'blue')
@@ -455,13 +474,20 @@ def nfs_server_centos7(nfs_dir):
             print colored('###########################################', 'red')
             sudo('mkdir /var/'+nfs_dir)
             sudo('chmod -R 777 /var/'+nfs_dir+'/')
-
-        ip_addr=sudo('ifconfig eth0 | awk \'/inet /{print substr($2,1)}\'')
-        netmask=sudo('ifconfig eth0 | awk \'/inet /{print substr($4,1)}\'')
-        subnet_temp = iptools.ipv4.subnet2block(str(ip_addr) + '/' + str(netmask))
-        subnet = subnet_temp[0]
-        #sudo('echo "/var/' + nfs_dir + '     ' + subnet + '/' + netmask + '(rw,sync,no_root_squash,no_all_squash)" > /etc/exports')
-        sudo('echo "/var/'+nfs_dir+'     *(rw,sync,no_root_squash)" > /etc/exports')
+        try:
+            ip_addr=sudo('ifconfig eth0 | awk \'/inet /{print substr($2,1)}\'')
+            netmask=sudo('ifconfig eth0 | awk \'/inet /{print substr($4,1)}\'')
+            subnet_temp = iptools.ipv4.subnet2block(str(ip_addr) + '/' + str(netmask))
+            subnet = subnet_temp[0]
+            #sudo('echo "/var/' + nfs_dir + '     ' + subnet + '/' + netmask + '(rw,sync,no_root_squash,no_all_squash)" > /etc/exports')
+            sudo('echo "/var/'+nfs_dir+'     *(rw,sync,no_root_squash)" > /etc/exports')
+        except:
+            ip_addr = sudo('ifconfig enp0s8 | awk \'/inet /{print substr($2,1)}\'')
+            etmask = sudo('ifconfig enp0s8 | awk \'/inet /{print substr($4,1)}\'')
+            subnet_temp = iptools.ipv4.subnet2block(str(ip_addr) + '/' + str(netmask))
+            subnet = subnet_temp[0]
+            # sudo('echo "/var/' + nfs_dir + '     ' + subnet + '/' + netmask + '(rw,sync,no_root_squash,no_all_squash)" > /etc/exports')
+            sudo('echo "/var/' + nfs_dir + '     *(rw,sync,no_root_squash)" > /etc/exports')
 
         #sudo('sudo exportfs -a')
 
@@ -476,12 +502,91 @@ def nfs_server_centos7(nfs_dir):
         #sudo firewall-cmd --zone=public --add-service=mountd --permanent
         #sudo firewall-cmd --reload
 
+def cachefs_install(nfs_dir, nfs_server_ip, cachedir="/var/cache/fscache", selinux=False):
+    with settings(warn_only=False):
+        sudo('yum install -y cachefilesd')
+        #http://www.cyberciti.biz/files/move-cache.txt
+        #If the cache is being used on a syst
+        # em on which SELinux is active and running
+        #in enforcing mode, then the security policy installed by the cachefilesd RPM
+        #needs to be updated to permit the CacheFiles module and daemon to access the
+        #cache if the cache is moved.
+        sudo('yum install -y checkpolicy selinux-policy*')
+
+        if exists('/usr/share/doc/cachefilesd-*/', use_sudo=True):
+            print colored('##############################', 'blue')
+            print colored('##### Directory Tree OK ######', 'blue')
+            print colored('##############################', 'blue')
+
+            with cd('/usr/share/doc/cachefilesd-*/'):
+                if (selinux == False):
+                    file_send_mod('/vagrant/scripts/conf/cachefs/cachefilesd.conf', '/etc/cachefilesd.conf', '664')
+                    print(sudo('cat /etc/cachefilesd.conf'))
+
+                elif(selinux==True):
+                    sudo('touch mycache.te')
+                    sudo('echo [mycache.te] >> mycache.te')
+                    sudo('echo policy_module(mycache,1.0.0) >> mycache.te')
+                    sudo('echo require { type cachefiles_var_t; } mycache.te')
+
+                    sudo('touch mycache.fc')
+                    sudo('echo [mycache.fc] >> mycache.fc')
+                    sudo('echo '+cachedir+'(/.*)? gen_context(system_u:object_r:cachefiles_var_t,s0) >> mycache.fc')
+
+                    sudo('make -f /usr/share/selinux/devel/Makefile')
+                    sudo('semodule -i mycache.pp')
+
+                    sudo('mkdir '+cachedir)
+                    sudo('restorecon '+cachedir)
+                    sudo('ls -dZ '+cachedir)
+
+                    #Modify /etc/cachefilesd.conf to point to the correct directory and then
+                    #start the cachefilesd service. In our case in /conf/cachefield.conf
+                    #config file
+                    file_send_mod('/vagrant/scripts/conf/cachefs/cachefilesd.conf', '/etc/cachefilesd.conf', '664')
+
+                    #The auxiliary policy can be later removed by:""
+                    #semodule -r mycache.pp
+
+                    #If the policy is updated, then the version number in policy_module() in
+                    #mycache.te should be increased and the module upgraded:
+                	#semodule -u mycache.pp
+                else:
+                    print colored('#######################################################', 'blue')
+                    print colored('##### Wrong parameter selinux var: True or False ######', 'blue')
+                    print colored('#######################################################', 'blue')
+
+        else:
+            print colored('##################################################', 'red')
+            print colored('##### cachefilesd Directory does not exists ######', 'red')
+            print colored('##################################################', 'red')
+
+        ## start it ##
+        sudo('service cachefilesd start')
+        ## get status ##
+        sudo('service cachefilesd status')
+
+        try:
+            part_mounted = sudo('df -h | grep /mnt/nfs/var/'+nfs_dir)
+            if(part_mounted ==""):
+                #mount nfs client with CacheFS support
+                sudo('mount -t nfs -o fsc '+nfs_server_ip+':/var/'+nfs_dir+' /mnt/nfs/var/'+nfs_dir+'/')
+            else:
+                print colored('##################################################', 'red')
+                print colored('##### cachefilesd partition already mounted ######', 'red')
+                print colored('##################################################', 'red')
+        except:
+            print colored('##########################################', 'red')
+            print colored('##### Retry to mount w/ cachefilesd ######', 'red')
+            print colored('##########################################', 'red')
+            sudo('mount -t nfs -o fsc ' + nfs_server_ip + ':/var/' + nfs_dir + ' /mnt/nfs/var/' + nfs_dir + '/')
+
 def nfs_client_centos7(nfs_dir,nfs_server_ip):
     with settings(warn_only=False):
         sudo('yum install -y nfs-utils')
         sudo('mkdir -p /mnt/nfs/var/'+nfs_dir)
         sudo('mount -t nfs '+nfs_server_ip+':/var/'+nfs_dir+' /mnt/nfs/var/'+nfs_dir+'/')
-        run('df - kh | grep nfs')
+        run('df -kh | grep nfs')
         run('mount | grep nfs')
 
         try:
@@ -489,7 +594,7 @@ def nfs_client_centos7(nfs_dir,nfs_server_ip):
 
         except:
             print colored('###########################################', 'red')
-            print colored('###### Check chef-zero installation #######', 'red')
+            print colored('###### NFS client installation Fail #######', 'red')
             print colored('###########################################', 'red')
 
 def nfs_server_centos6(nfs_dir):
