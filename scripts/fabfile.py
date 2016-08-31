@@ -51,6 +51,7 @@ env.shell = "/bin/sh -c"
 env.skip_bad_hosts=True
 env.timeout=5
 
+
 def command(cmd):
     with settings(warn_only=False):
         run(cmd)
@@ -502,43 +503,119 @@ def nfs_server_centos7(nfs_dir):
         #sudo firewall-cmd --zone=public --add-service=mountd --permanent
         #sudo firewall-cmd --reload
 
-def cachefs_install(nfs_dir, nfs_server_ip, cachedir="/var/cache/fscache", selinux=False):
+def cachefs_install(nfs_dir, nfs_server_ip, cachetag="mycache",cachedir="/var/cache/fscache", selinux='False'):
+    #fab -R dev cachefs_install:nfsshare,\"172.28.128.3\",mycache-test,/var/cache/fscache-test/
     with settings(warn_only=False):
+        ### INSTALL FS-CACHE PACKAGE ###
         sudo('yum install -y cachefilesd')
-        #http://www.cyberciti.biz/files/move-cache.txt
-        #If the cache is being used on a syst
-        # em on which SELinux is active and running
-        #in enforcing mode, then the security policy installed by the cachefilesd RPM
-        #needs to be updated to permit the CacheFiles module and daemon to access the
-        #cache if the cache is moved.
-        sudo('yum install -y checkpolicy selinux-policy*')
 
-        if exists('/usr/share/doc/cachefilesd-*/', use_sudo=True):
-            print colored('##############################', 'blue')
-            print colored('##### Directory Tree OK ######', 'blue')
-            print colored('##############################', 'blue')
+        ### CHECK IF SELINUX ENFORMENT is ENABLED ###
+        print colored('=====================================================' , 'blue')
+        print colored('RELOCATING THE CACHE WITH SELINUX ENFORCEMENT ENABLED' , 'blue')
+        print colored('=====================================================' , 'blue')
+        selinux = bool(strtobool(selinux))
+        #setenforce enforcing
+        # setenforce permissive
+        # sestatus
+        try:
+            selinux_mode = (sudo('sestatus | grep "Current mode:                   enforcing"'))
+            if(selinux_mode != ""):
+                selinux=bool(strtobool('True'))
+            else:
+                selinux=bool(strtobool('False'))
+        except:
+            selinux_mode = (sudo('sestatus | grep "Current mode:                   permissive"'))
+            if (selinux_mode != ""):
+                selinux = bool(strtobool('False'))
+            else:
+                selinux = bool(strtobool('True'))
+        #finally:
+        #   Peace of code that will be always executed no mater what
+        ### END OF SELINUX ENFORMENT is ENABLED CHECK ###
+
+        ### CONFIGURING FS-CACHE SELINUX ###
+        ### We'll use the documentation folder to host them ###
+        if exists('/etc/cachefilesd.conf', use_sudo=True):
+            print colored('#################################', 'yellow')
+            print colored('##### CACHEFS conf file OK ######', 'yellow')
+            print colored('#################################', 'yellow')
+
+            # ====================
+            # RELOCATING THE CACHE
+            # ====================
+            # By default, the cache is located in /var/cache/fscache, but this may be
+            # undesirable.  Unless SELinux is being used in enforcing mode, relocating the
+            # cache is trivially a matter of changing the "dir" line in /etc/cachefilesd.
+
+            # However, if SELinux is being used in enforcing mode, then it's not that
+            # simple.  The security policy that governs access to the cache must be changed.
 
             with cd('/usr/share/doc/cachefilesd-*/'):
                 if (selinux == False):
+                    if exists(cachedir, use_sudo=True):
+                        print colored('###########################################', 'yellow')
+                        print colored('##### Local Cache Dir already exists ######', 'yellow')
+                        print colored('###########################################', 'yellow')
+                    else:
+                        sudo('mkdir '+cachedir)
+
                     file_send_mod('/vagrant/scripts/conf/cachefs/cachefilesd.conf', '/etc/cachefilesd.conf', '664')
-                    print(sudo('cat /etc/cachefilesd.conf'))
 
-                elif(selinux==True):
-                    sudo('touch mycache.te')
-                    sudo('echo [mycache.te] >> mycache.te')
-                    sudo('echo policy_module(mycache,1.0.0) >> mycache.te')
-                    sudo('echo require { type cachefiles_var_t; } mycache.te')
+                elif(selinux == True):
+                    print colored('#######################################', 'red', attrs=['bold'])
+                    print colored('########### NOT WORKING YET! ##########', 'red', attrs=['bold'])
+                    print colored('#######################################', 'red', attrs=['bold'])
 
-                    sudo('touch mycache.fc')
-                    sudo('echo [mycache.fc] >> mycache.fc')
-                    sudo('echo '+cachedir+'(/.*)? gen_context(system_u:object_r:cachefiles_var_t,s0) >> mycache.fc')
+                    # Default policy interface for the CacheFiles userspace management daemon
+                    ##/usr/share/selinux/devel/include/contrib/cachefilesd.if
+                    sudo('yum install -y checkpolicy selinux-policy*')
+                    print colored(sudo('sestatus'), 'cyan', attrs=['bold'])
 
-                    sudo('make -f /usr/share/selinux/devel/Makefile')
-                    sudo('semodule -i mycache.pp')
+                    if exists('/usr/share/doc/cachefilesd-*/'+cachetag, use_sudo=True):
+                        print colored('##########################################', 'yellow')
+                        print colored('##### Conf Cache Dir already exists ######', 'yellow')
+                        print colored('##########################################', 'yellow')
+                    else:
+                        sudo('mkdir '+cachetag)
+                    """
+                    if exists('/usr/share/doc/cachefilesd-*/'+cachetag+'/'+cachetag+'.te', use_sudo=True):
+                        print colored('########################################', 'yellow')
+                        print colored('##### '+cachetag+'.te file alredy exists', 'yellow')
+                        print colored('########################################', 'yellow')
+                    else:
+                        sudo('touch '+cachetag+'/'+cachetag+'.te')
+                        line1='['+cachetag+'.te]'
+                        line2='policy_module('+cachetag+',1.0.0)'
+                        line3='require { type cachefiles_var_t; }'
+                        filename_te = str(cachetag+'/'+cachetag+'.te')
+                        append(filename_te, [line1,line2,line3], use_sudo=True, partial=False, escape=True, shell=False)
 
-                    sudo('mkdir '+cachedir)
-                    sudo('restorecon '+cachedir)
-                    sudo('ls -dZ '+cachedir)
+                    if exists('/usr/share/doc/cachefilesd-*/'+cachetag+'.fc', use_sudo=True):
+                        print colored('##########################################', 'yellow')
+                        print colored('##### '+cachetag+'.fc file alredy exists'  , 'yellow')
+                        print colored('##########################################', 'yellow')
+                    else:
+                        sudo('touch '+cachetag+'/'+cachetag+'.fc')
+                        line1 ='['+cachetag+'.fc]'
+                        line2 =cachedir+'(/.*)? gen_context(system_u:object_r:cachefiles_var_t,s0)'
+                        filename_te = str(cachetag + '/' + cachetag + '.fc')
+                        append(filename_te, [line1, line2], use_sudo=True, partial=False, escape=True, shell=False)
+
+                    with cd('/usr/share/doc/cachefilesd-*/'+cachetag):
+                        sudo('make -f /usr/share/selinux/devel/Makefile '+cachetag+'.pp')
+                        sudo('semodule -i '+cachetag+'.pp')
+                        sudo('semodule -l | grep '+cachetag)
+
+                    if exists(cachedir, use_sudo=True):
+                        print colored('###########################################', 'yellow')
+                        print colored('##### Local Cache Dir already exists ######', 'yellow')
+                        print colored('###########################################', 'yellow')
+                        sudo('restorecon ' + cachedir)
+                        sudo('ls -dZ ' + cachedir)
+                    else:
+                        sudo('mkdir '+cachedir)
+                        sudo('restorecon '+cachedir)
+                        sudo('ls -dZ '+cachedir)
 
                     #Modify /etc/cachefilesd.conf to point to the correct directory and then
                     #start the cachefilesd service. In our case in /conf/cachefield.conf
@@ -546,25 +623,46 @@ def cachefs_install(nfs_dir, nfs_server_ip, cachedir="/var/cache/fscache", selin
                     file_send_mod('/vagrant/scripts/conf/cachefs/cachefilesd.conf', '/etc/cachefilesd.conf', '664')
 
                     #The auxiliary policy can be later removed by:""
-                    #semodule -r mycache.pp
+                    #semodule -r '+cachetag+'.pp
 
                     #If the policy is updated, then the version number in policy_module() in
-                    #mycache.te should be increased and the module upgraded:
-                	#semodule -u mycache.pp
+                    #'+cachetag+'.te should be increased and the module upgraded:
+                	#semodule -u '+cachetag+'.pp
+                    """
                 else:
-                    print colored('#######################################################', 'blue')
-                    print colored('##### Wrong parameter selinux var: True or False ######', 'blue')
-                    print colored('#######################################################', 'blue')
+                    print colored('#############################################################################', 'blue')
+                    print colored('##### Selinux supported in Permissive mode or when Selinux is disabled ######', 'blue')
+                    print colored('#############################################################################', 'blue')
 
         else:
-            print colored('##################################################', 'red')
-            print colored('##### cachefilesd Directory does not exists ######', 'red')
-            print colored('##################################################', 'red')
+            print colored('#################################################################', 'red')
+            print colored('##### cachefilesd conf does not exists (Check Instalation) ######', 'red')
+            print colored('#################################################################', 'red')
 
-        ## start it ##
-        sudo('service cachefilesd start')
         ## get status ##
-        sudo('service cachefilesd status')
+        fscachestat = sudo('service cachefilesd status | grep Active | cut -d\' \' -f5')
+        parts = fscachestat.split('\n')
+        fscachestat = parts[1]
+
+        if fscachestat == "inactive":
+            ## start it ##
+            sudo('service cachefilesd start')
+            print colored('=================================', 'blue')
+            print colored('         FSCACHE STARTED         ', 'blue')
+            print colored('=================================', 'blue')
+            ## Uncoment start it at boot ##
+            # systemd enable cachefilesd.service
+        elif fscachestat == "active":
+            ## stop it ##
+            sudo('service cachefilesd restart')
+            print colored('=================================', 'blue')
+            print colored('        FSCACHE RE-STARTED       ', 'blue')
+            print colored('=================================', 'blue')
+        else:
+            print colored('################################################################', 'red')
+            print colored('##### cachefilesd Serv does not exists (Check Instalation) ######', 'red')
+            print colored('################################################################', 'red')
+
 
         try:
             part_mounted = sudo('df -h | grep /mnt/nfs/var/'+nfs_dir)
@@ -572,14 +670,29 @@ def cachefs_install(nfs_dir, nfs_server_ip, cachedir="/var/cache/fscache", selin
                 #mount nfs client with CacheFS support
                 sudo('mount -t nfs -o fsc '+nfs_server_ip+':/var/'+nfs_dir+' /mnt/nfs/var/'+nfs_dir+'/')
             else:
-                print colored('##################################################', 'red')
-                print colored('##### cachefilesd partition already mounted ######', 'red')
-                print colored('##################################################', 'red')
+                print colored('##################################################', 'yellow')
+                print colored('##### cachefilesd partition already mounted ######', 'yellow')
+                print colored('##################################################', 'yellow')
+                #sudo('mount -t nfs -o fsc ' + nfs_server_ip + ':/var/' + nfs_dir + ' /mnt/nfs/var/' + nfs_dir + '/')
+
+            sudo('cat /proc/fs/nfsfs/servers')
+            sudo('cat /proc/fs/fscache/stats')
+
         except:
-            print colored('##########################################', 'red')
-            print colored('##### Retry to mount w/ cachefilesd ######', 'red')
-            print colored('##########################################', 'red')
-            sudo('mount -t nfs -o fsc ' + nfs_server_ip + ':/var/' + nfs_dir + ' /mnt/nfs/var/' + nfs_dir + '/')
+            print colored('#########################################', 'red')
+            print colored('##### Problem mounting cachefilesd ######', 'red')
+            print colored('#########################################', 'red')
+
+        ### TESTING ###
+        print colored('===============================', 'blue')
+        print colored('        FILE NOT CACHED        ', 'blue')
+        print colored('===============================', 'blue')
+        sudo('time cp /mnt/nfs/var/nfsshare/chefdk-0.17.17-1.el7.x86_64.rpm /tmp')
+
+        print colored('==============================', 'blue')
+        print colored('        FILE NFS CACHED :)    ', 'blue')
+        print colored('==============================', 'blue')
+        sudo('time cp /mnt/nfs/var/nfsshare/chefdk-0.17.17-1.el7.x86_64.rpm /dev/null')
 
 def nfs_client_centos7(nfs_dir,nfs_server_ip):
     with settings(warn_only=False):
@@ -683,7 +796,7 @@ def nfs_server_ubuntu(nfs_dir):
         #sudo firewall-cmd --zone=public --add-service=mountd --permanent
         #sudo firewall-cmd --reload
 
-'''
+"""
 def sp_local(sp_dir):
     with settings(warn_only=False):
         if exists(sp_dir, use_sudo=True):
@@ -822,8 +935,8 @@ def sp_local(sp_dir):
             print colored('################################################', 'red')
             print colored('##### Dir /yarara-ace-test/ doesnt exists ######', 'red')
             print colored('################################################', 'red')
-'''
-'''
+"""
+"""
 def push_key(usernamep):
     with settings(warn_only=False):
         #usernamep = prompt("Which USERNAME you like to CREATE & PUSH KEYS?")
@@ -903,4 +1016,4 @@ def push_key(usernamep):
             local('sudo chmod 700 /home/' + usernamep + '/.ssh')
             local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa')
             local('sudo chmod 600 /home/' + usernamep + '/.ssh/id_rsa.pub')
-'''
+"""
