@@ -18,6 +18,7 @@ import logging
 import yum
 import pwd
 import iptools
+import getpass
 
 # As a good practice we can log the state of each phase in our script.
 #  https://docs.python.org/2.7/howto/logging.html
@@ -194,7 +195,7 @@ def yum_package(action, package):
             print colored('Usage eg2: $ fab -R dev yum_package:upgrade,gcc', 'red')
             print colored('############################################################################', 'blue')
 
-def add_user_centos(usernamec):
+def user_add_centos(usernamec):
     with settings(warn_only=True):
         #usernamep = prompt("Which USERNAME you like to CREATE & PUSH KEYS?")
         #user_exists = sudo('cat /etc/passwd | grep '+usernamep)
@@ -252,7 +253,7 @@ def change_pass(usernameu,upass):
             print colored('"' + usernameu + '" doesnt exists', 'red')
             print colored('##################################', 'red')
 
-def gen_key(usernameg):
+def key_gen(usernameg):
     with settings(warn_only=False):
         #usernameg = prompt("Which USERNAME you like to GEN KEYS?")
         #user_exists = sudo('cut -d: -f1 /etc/passwd | grep '+usernameg)
@@ -298,7 +299,7 @@ def gen_key(usernameg):
             sudo('chmod 600 /home/' + usernameg + '/.ssh/id_rsa')
             sudo('gpasswd -a ' + usernameg + ' wheel')
 
-def read_key_file(key_file):
+def key_read_file(key_file):
     with settings(warn_only=False):
         key_file = os.path.expanduser(key_file)
         if not key_file.endswith('pub'):
@@ -306,7 +307,7 @@ def read_key_file(key_file):
         with open(key_file) as f:
             return f.read()
 
-def append_key(usernamea):
+def key_append(usernamea):
     with settings(warn_only=False):
         if(usernamea == "root"):
             key_file = '/'+ usernamea+'/.ssh/id_rsa.pub'
@@ -355,7 +356,7 @@ def append_key(usernamea):
                 sudo('chown -R ' + usernamea + ':' + usernamea + ' /home/' + usernamea + '/.ssh/')
             #put('/home/'+usernamea+'/.ssh/authorized_keys', '/home/'+usernamea+'/.ssh/')
 
-def test_key(usernamet):
+def key_test(usernamet):
     with settings(warn_only=False):
         hostvm = sudo('hostname')
         local('sudo chmod 701 /home/' + usernamet)
@@ -370,6 +371,7 @@ def test_key(usernamet):
 
         local('sudo cp /home/'+usernamet+'/.ssh/id_rsa ~/temp/id_rsa')
         local('sudo chown -R '+local_user+':'+local_user+' ~/temp/id_rsa')
+        local('chmod 600 ~/temp/id_rsa')
         #local('sudo chmod 604 /home/' + usernamet + '/.ssh/id_rsa')
 
         # FIX DONE! - Must copy the key temporaly with the proper permissions
@@ -461,6 +463,76 @@ def kifezero_install_centos():
                 print colored('###########################################', 'red')
                 print colored('###### Check chef-zero installation #######', 'red')
                 print colored('###########################################', 'red')
+    """
+    # AND THEN http://knife-zero.github.io/20_getting_started/
+    $ mkdir my_chef_repo
+    $ cd my_chef_repo
+    $ touch ./knife.rb
+
+    Write settings into knife.rb.
+
+    local_mode true
+    chef_repo_path   File.expand_path('../' , __FILE__)
+
+    knife[:ssh_attribute] = "knife_zero.host"
+    knife[:use_sudo] = true
+
+    ## use specific key file to connect server instead of ssh_agent(use ssh_agent is set true by default).
+    # knife[:identity_file] = "~/.ssh/id_rsa"
+
+    ## Attributes of node objects will be saved to json file.
+    ## the automatic_attribute_whitelist option limits the attributes to be saved.
+    knife[:automatic_attribute_whitelist] = %w[
+    fqdn
+    os
+    os_version
+    hostname
+    ipaddress
+    roles
+    recipes
+    ipaddress
+    platform
+    platform_version
+    cloud
+    cloud_v2
+    chef_packages
+    ]
+
+    ### Bootstrap servers ###
+
+    knife zero bootstrap ebarrirero@10.31.54.165 -N client1
+    knife zero bootstrap ebarrirero@10.31.54.165 -N client2
+    knife node show client1
+    knife node show client2
+    knife node list
+
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ ls -ltra
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ cd nodes/
+
+    There are created files in /etc/chef below by default. This behavior is same as chef-server/client environment.
+    (client1) $ sudo find /etc/chef
+    /etc/chef
+    /etc/chef/first-boot.json
+    /etc/chef/client.pem
+    /etc/chef/validation.pem
+    /etc/chef/client.rb
+
+    Search and SSH
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife search node "name:cli*"
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife search node "platform:centos"
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife ssh "platform:centos*" --ssh-user ebarrirero hostname
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife ssh "name:cli*" --ssh-user ebarrirero yum search vim
+
+    Next, we can run chef-client on remote servers by zero converge without any changes.
+
+    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife zero converge "name:*" --ssh-user ebarrirero
+
+    Now, we have prepared to manage by chef.
+    Note:
+    Remember, we don’t have to use recipes to manage servers.
+    It is possible that we can manage simply with using knife (ssh|search|node list) without converge.
+    In other words, we can use chef-repository which is created by Knife-Zero as just management ledger.
+    """
 
 def nfs_server_centos7(nfs_dir):
     with settings(warn_only=False):
@@ -834,6 +906,8 @@ def haproxy_ws(action,ws_ip):
                     sudo('chmod 755 /etc/haproxy/')
                     sudo('chmod 600 /etc/haproxy/haproxy.cfg')
 
+                    sudo('systemctl restart haproxy')
+
                     print colored('=============================================', 'blue', attrs=['bold'])
                     print colored('SERVER ' + ws_ip + ' SUCCESFULLY ADDED to HLB', 'blue', attrs=['bold'])
                     print colored('=============================================', 'blue', attrs=['bold'])
@@ -856,9 +930,12 @@ def haproxy_ws(action,ws_ip):
                     sudo('chmod 755 /etc/haproxy/')
                     sudo('chmod 600 /etc/haproxy/haproxy.cfg')
 
+                    sudo('systemctl restart haproxy')
+
                     print colored('================================================', 'blue', attrs=['bold'])
                     print colored('SERVER ' + ws_ip + ' SUCCESFULLY REMOVED from HLB', 'blue', attrs=['bold'])
                     print colored('================================================', 'blue', attrs=['bold'])
+
                 else:
                     print colored('===========================================================================', 'red')
                     print colored('WRONG ARGs or conditions unmets, eg: trying to add a WS that already exists', 'red')
