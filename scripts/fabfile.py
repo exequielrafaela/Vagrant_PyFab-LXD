@@ -31,21 +31,26 @@ logging.info('LOG STARTS')
 # http://www.tutorialspoint.com/python/string_split.htm
 # with open("./out_users_test.txt", "r") as f:
 #    ServerList = [line.split()[0] for line in f]
-with open("./out_users_test.txt", "r") as f:
-    ServerList = [line.split()[0] for line in f]
-    print(ServerList)
+#with open("./out_users_test.txt", "r") as f:
+#    ServerList = [line.split()[0] for line in f]
+#    print(ServerList)
+
+with open("./conf/servers/greycom_prd_haproxy.txt", "r") as f:
+    GreyCom_prd_haproxy = [line.split()[0] for line in f]
+    print(GreyCom_prd_haproxy)
 
 # In env.roledefs we define the remote servers. It can be IP Addrs or domain names.
 env.roledefs = {
     'local': ['localhost'],
-    'dev': ServerList,
+    #'dev': ServerList,
     'staging': ['user@staging.example.com'],
-    'production': ['user@production.example.com']
+    'production': ['user@production.example.com'],
+    'greycom_prd_haproxy': GreyCom_prd_haproxy
 }
 
-# Fabric environmental variables.
-env.user = "root"
-env.password = "toor"
+# Fabric user and pass.
+#env.user = "root"
+#env.password = "toor"
 #env.key_filename = '/home/username/.ssh/id_rsa'
 #env.warn_only=True
 env.pararel=True
@@ -358,6 +363,7 @@ def key_append(usernamea):
 
 def key_test(usernamet):
     with settings(warn_only=False):
+        # TAKE THE HOME DIR FROM /ETC/PASSWD
         hostvm = sudo('hostname')
         local('sudo chmod 701 /home/' + usernamet)
         local('sudo chmod 741 /home/' + usernamet + '/.ssh')
@@ -463,76 +469,6 @@ def kifezero_install_centos():
                 print colored('###########################################', 'red')
                 print colored('###### Check chef-zero installation #######', 'red')
                 print colored('###########################################', 'red')
-    """
-    # AND THEN http://knife-zero.github.io/20_getting_started/
-    $ mkdir my_chef_repo
-    $ cd my_chef_repo
-    $ touch ./knife.rb
-
-    Write settings into knife.rb.
-
-    local_mode true
-    chef_repo_path   File.expand_path('../' , __FILE__)
-
-    knife[:ssh_attribute] = "knife_zero.host"
-    knife[:use_sudo] = true
-
-    ## use specific key file to connect server instead of ssh_agent(use ssh_agent is set true by default).
-    # knife[:identity_file] = "~/.ssh/id_rsa"
-
-    ## Attributes of node objects will be saved to json file.
-    ## the automatic_attribute_whitelist option limits the attributes to be saved.
-    knife[:automatic_attribute_whitelist] = %w[
-    fqdn
-    os
-    os_version
-    hostname
-    ipaddress
-    roles
-    recipes
-    ipaddress
-    platform
-    platform_version
-    cloud
-    cloud_v2
-    chef_packages
-    ]
-
-    ### Bootstrap servers ###
-
-    knife zero bootstrap ebarrirero@10.31.54.165 -N client1
-    knife zero bootstrap ebarrirero@10.31.54.165 -N client2
-    knife node show client1
-    knife node show client2
-    knife node list
-
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ ls -ltra
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ cd nodes/
-
-    There are created files in /etc/chef below by default. This behavior is same as chef-server/client environment.
-    (client1) $ sudo find /etc/chef
-    /etc/chef
-    /etc/chef/first-boot.json
-    /etc/chef/client.pem
-    /etc/chef/validation.pem
-    /etc/chef/client.rb
-
-    Search and SSH
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife search node "name:cli*"
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife search node "platform:centos"
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife ssh "platform:centos*" --ssh-user ebarrirero hostname
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife ssh "name:cli*" --ssh-user ebarrirero yum search vim
-
-    Next, we can run chef-client on remote servers by zero converge without any changes.
-
-    [ebarrirero@lxd-centos-01 my_chef_repo]$ knife zero converge "name:*" --ssh-user ebarrirero
-
-    Now, we have prepared to manage by chef.
-    Note:
-    Remember, we don’t have to use recipes to manage servers.
-    It is possible that we can manage simply with using knife (ssh|search|node list) without converge.
-    In other words, we can use chef-repository which is created by Knife-Zero as just management ledger.
-    """
 
 def nfs_server_centos7(nfs_dir):
     with settings(warn_only=False):
@@ -945,6 +881,156 @@ def haproxy_ws(action,ws_ip):
                 print colored('Problem found haproxy.cfg not found - check istallation', 'red')
                 print colored('=======================================================', 'red')
 
+
+"""
+def db_backup():
+    with settings(warn_only=False):
+        #Check the DBs in PRD
+        mysql -h ggcc-prd.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "show databases"
+        +--------------------+
+        | Database           |
+        +--------------------+
+        | information_schema |
+        | ggcc_prd           |
+        | innodb             |
+        | mysql              |
+        | performance_schema |
+        | tmp                |
+        +--------------------+
+
+        mysql -h ggcc-prd.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "use ggcc_prd; show tables;"
+
+        Database changed
+        mysql> show tables;
+        +----------------------------+
+        | Tables_in_ggcc_prd         |
+        +----------------------------+
+        | category                   |
+        | category_votes             |
+        | category_weights           |
+        | contest                    |
+        | contest_agencies           |
+        | contest_grouping           |
+        | contest_status             |
+        | contest_submitters_judges  |
+        | contest_view               |
+        | delayed_action             |
+        | groups                     |
+        | migrations                 |
+        | report_shared              |
+        | sessions                   |
+        | stage                      |
+        | submission                 |
+        | submission_awards          |
+        | submission_categories      |
+        | submission_comments        |
+        | submission_downloads       |
+        | submission_favorite_shared |
+        | submission_favorited       |
+        | submission_files           |
+        | submission_tags            |
+        | submission_votes           |
+        | throttle                   |
+        | users                      |
+        | users_groups               |
+        | view                       |
+        +----------------------------+
+        29 rows in set (0.00 sec)
+
+        mysql> SELECT table_name "Table Name", table_rows "Rows Count", round(((data_length + index_length)/1024/1024),2) "Table Size (MB)" FROM information_schema.TABLES WHERE table_schema = "ggcc_prd";
+
+        mysql> select * from  mysql.user;
+        mysql> describe mysql.user;
+        mysql> select User from mysql.user;
+
+        mysql> select User from mysql.user;
+        +----------------+
+        | User           |
+        +----------------+
+        | grey_ggcc_user |
+        | greyrdsadmin   |
+        | rdsadmin       |
+        +----------------+
+        3 rows in set (0.00 sec)
+
+        mysql> show grants for 'greyrdsadmin'@'%';
+        mysql> show grants for 'grey_ggcc_user'@'%';
+
+        mysql> show grants for 'greyrdsadmin'@'%';
+        +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        | Grants for greyrdsadmin@%                                                                                                                                                                                                                                                                                                                                                                                 |
+        +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        | GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, DROP, RELOAD, PROCESS, REFERENCES, INDEX, ALTER, SHOW DATABASES, CREATE TEMPORARY TABLES, LOCK TABLES, EXECUTE, REPLICATION SLAVE, REPLICATION CLIENT, CREATE VIEW, SHOW VIEW, CREATE ROUTINE, ALTER ROUTINE, CREATE USER, EVENT, TRIGGER ON *.* TO 'greyrdsadmin'@'%' IDENTIFIED BY PASSWORD '*A585F04D9672D0A452EACF9A19845977F7B69AD3' WITH GRANT OPTION |
+        +-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
+        1 row in set (0.01 sec)
+
+        mysql> show grants for 'grey_ggcc_user'@'%';
+        +---------------------------------------------------------------------------------------------------------------+
+        | Grants for grey_ggcc_user@%                                                                                   |
+        +---------------------------------------------------------------------------------------------------------------+
+        | GRANT USAGE ON *.* TO 'grey_ggcc_user'@'%' IDENTIFIED BY PASSWORD '*0A52185901D9594418AFD3E33EF316C384DDCAF2' |
+        | GRANT ALL PRIVILEGES ON `ggcc_prd`.* TO 'grey_ggcc_user'@'%' WITH GRANT OPTION                                |
+        +---------------------------------------------------------------------------------------------------------------+
+        2 rows in set (0.00 sec)
+
+        [ebarrirero@jumphost ~]$ df -h
+        Filesystem      Size  Used Avail Use% Mounted on
+        /dev/xvdi        99G   89G  4,7G  96% /ops/backups
+        [ebarrirero@jumphost ~]$ cd /ops/backups/
+
+        [ebarrirero@jumphost backups]$ ls -ltr
+        total 49104192
+        -rw-r--r--  1 jenkins jenkins 16255091287 ago 25 16:54 greycom-prd-2016-08-25.tar.gz
+        -rw-r--r--  1 jenkins jenkins 16263377824 ago 30 18:07 greycom-prd-2016-08-30.tar.gz
+        -rw-r--r--  1 jenkins jenkins 16275778219 sep  1 19:23 greycom-prd-2016-09-01.tar.gz
+
+        [ebarrirero@jumphost backups]$ sudo rm -rf greycom-prd-2016-08-25.tar.gz
+        [ebarrirero@jumphost backups]$ sudo rm -rf greycom-prd-2016-08-30.tar.gz
+
+        [ebarrirero@jumphost backups]$ df -h
+        /dev/xvdi        99G   59G   35G  63% /ops/backups
+
+
+        DATE=`date +%Y-%m-%d`
+        mysqldump -q -c --routines --triggers --single-transaction -h ggcc-prd.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p ggcc_prd > /ops/backups/ggcc_prd-$DATE.sql
+        #check that the backup was created with a grep.
+
+        #mysql --defaults-file=scripts/conf/connect-stg/connect-stg-my.cnf -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -e "CREATE DATABASE grey_stg_v2"
+        #mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "DROP DATABASE grey_stg_v2"
+        mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "CREATE DATABASE ggcc_stg_v2"
+        mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "show databases;"
+        Enter password:
+        +--------------------+
+        | Database           |
+        +--------------------+
+        | information_schema |
+        | ggcc_stg           |
+        | ggcc_stg_v1        |
+        | ggcc_stg_v2        |
+        | innodb             |
+        | mysql              |
+        | performance_schema |
+        | tmp                |
+        +--------------------+
+
+        DATE=`date +%Y-%m-%d`
+        mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p ggcc_stg_v2 < /ops/backups/ggcc_prd-$DATE.sql
+
+        THEN IN STG
+        If User not created:
+        mysql> CREATE USER 'grey_ggcc_user'@'%' IDENTIFIED BY 'grey_ggcc_user';
+        Query OK, 0 rows affected (0.01 sec)
+
+        #To grant permisions for a certain user for one DB (* represents the tables)
+        #mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "grant all privileges on ggcc_stg_v2.* to 'grey_ggcc_user'@'%' WITH GRANT OPTION;"
+        #mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "grant all privileges on ggcc_stg_v2.* to 'grey_ggcc_user'@'%';"
+
+        #To grant permisions for a certain user for a specific DB (for Connect)
+        mysql -h ggcc-stg.cqrpklcv3mzd.us-east-1.rds.amazonaws.com -u greyrdsadmin -p -e "grant all on `ggcc_stg_v2`.* to 'ggcc_stg_user'@'%';"
+
+        #Remove the dump
+"""
+
 """
 def sp_local(sp_dir):
     with settings(warn_only=False):
@@ -1085,6 +1171,7 @@ def sp_local(sp_dir):
             print colored('##### Dir /yarara-ace-test/ doesnt exists ######', 'red')
             print colored('################################################', 'red')
 """
+
 """
 def push_key(usernamep):
     with settings(warn_only=False):
