@@ -31,21 +31,21 @@ logging.info('LOG STARTS')
 # http://www.tutorialspoint.com/python/string_split.htm
 # with open("./out_users_test.txt", "r") as f:
 #    ServerList = [line.split()[0] for line in f]
-#with open("./out_users_test.txt", "r") as f:
-#    ServerList = [line.split()[0] for line in f]
-#    print(ServerList)
+with open("./out_users_test.txt", "r") as f:
+    ServerList = [line.split()[0] for line in f]
+    print(ServerList)
 
-with open("./conf/servers/greycom_prd_haproxy.txt", "r") as f:
-    GreyCom_prd_haproxy = [line.split()[0] for line in f]
-    print(GreyCom_prd_haproxy)
+#with open("./conf/servers/greycom_prd_haproxy.txt", "r") as f:
+#    GreyCom_prd_haproxy = [line.split()[0] for line in f]
+#    print(GreyCom_prd_haproxy)
 
 # In env.roledefs we define the remote servers. It can be IP Addrs or domain names.
 env.roledefs = {
     'local': ['localhost'],
-    #'dev': ServerList,
+    'dev': ServerList,
     'staging': ['user@staging.example.com'],
     'production': ['user@production.example.com'],
-    'greycom_prd_haproxy': GreyCom_prd_haproxy
+    #'greycom_prd_haproxy': GreyCom_prd_haproxy
 }
 
 # Fabric user and pass.
@@ -58,6 +58,41 @@ env.shell = "/bin/sh -c"
 env.skip_bad_hosts=True
 env.timeout=5
 
+
+def show_roles():
+    for key, value in sorted(env.roledefs.items()):
+        print key, value
+
+def show_help():
+    print ""
+    print "Commands list:"
+    print ""
+    print "mode active                  Change behaviour mode to active"
+    print "mode passive                 Change behaviour mode to passive"
+    print "mode aggressive              Change behaviour mode to aggressive"
+    print ""
+    print "verbose on                   Turn verbose mode on (it shows more information)"
+    print "verbose off                  Turn verbose mode off"
+    print "email on                     Turn e-mail report on"
+    print "email off                    Turn e-mail report off"
+    print ""
+    print "show statistics, stats       Show the statistics of the current instance."
+    print ""
+    print "clean logs                   Remove all log files"
+    print "clean results                Remove all results files"
+    print "clean calls                  Remove all the recorded calls"
+    print "clean all                    Remove all files"
+    print "                             (Use these commands carefully)"
+    print ""
+    print "hangup all                   Hang up all calls"
+    print ""
+    print "show warranty                Show the program warrany"
+    print "show license                 Show the program license"
+    print ""
+    print "modify extension             To add or delete an Extension"
+    print "restart                      To restart Artemisa"
+    print ""
+    print "s, q, quit, exit             Exit"
 
 def command(cmd):
     with settings(warn_only=False):
@@ -316,7 +351,7 @@ def key_append(usernamea):
     with settings(warn_only=False):
         if(usernamea == "root"):
             key_file = '/'+ usernamea+'/.ssh/id_rsa.pub'
-            key_text = read_key_file(key_file)
+            key_text = key_read_file(key_file)
             if exists('/'+usernamea+'/.ssh/authorized_keys', use_sudo=True):
                 local('sudo chmod 701 /home/' + usernamea)
                 local('sudo chmod 741 /home/' + usernamea + '/.ssh')
@@ -344,7 +379,7 @@ def key_append(usernamea):
             local('sudo chmod 701 /home/' + usernamea)
             local('sudo chmod 741 /home/' + usernamea + '/.ssh')
             local('sudo chmod 604 /home/' + usernamea + '/.ssh/id_rsa.pub')
-            key_text = read_key_file(key_file)
+            key_text = key_read_file(key_file)
             local('sudo chmod 700 /home/' + usernamea)
             local('sudo chmod 700 /home/' + usernamea + '/.ssh')
             local('sudo chmod 600 /home/' + usernamea + '/.ssh/id_rsa.pub')
@@ -880,6 +915,98 @@ def haproxy_ws(action,ws_ip):
                 print colored('=======================================================', 'red')
                 print colored('Problem found haproxy.cfg not found - check istallation', 'red')
                 print colored('=======================================================', 'red')
+
+def maltrail(role):
+    with settings(warn_only=False):
+        try:
+            sudo('yum install -y git pcapy schedtool')
+            with cd('/home/'+env.user+'/'):
+                if exists('/home/'+env.user+'/maltrail', use_sudo=True):
+                    print colored('###########################################', 'blue')
+                    print colored('####### Directory already created #########', 'blue')
+                    print colored('###########################################', 'blue')
+
+                    if role=="sensor":
+                        with cd ('maltrail'):
+                            sudo('python sensor.py &')
+                    elif role=="server":
+                        with cd('/home/'+env.user+'/'):
+                            run('[[ -d maltrail ]] || git clone https://github.com/stamparm/maltrail.git')
+
+                        with cd ('maltrail/'):
+                            sudo('python server.py &')
+                    else:
+                        print colored('=========================================', 'red')
+                        print colored('Wrong arg: excects = "sensor" or "server"', 'red')
+                        print colored('=========================================', 'red')
+                else:
+                    print colored('##########################################', 'red')
+                    print colored('###### Creating Maltrail Directory #######', 'red')
+                    print colored('##########################################', 'red')
+                    if role == "sensor":
+                        run('git clone https://github.com/stamparm/maltrail.git')
+                        with cd ('maltrail/'):
+                            sudo('python sensor.py ')
+                            ### FOR THE CLIENT ###
+                            #using configuration file '/home/ebarrirero/maltrail/maltrail.conf'
+                            #using '/var/log/maltrail' for log storage
+                            #at least 384MB of free memory required
+                            #updating trails (this might take a while)...
+                            #loading trails...
+                            #1,135,525 trails loaded
+
+                            ### NOTE: ###
+                            #in case of any problems with packet capture on virtual interface 'any',
+                            #please put all monitoring interfaces to promiscuous mode manually (e.g. 'sudo ifconfig eth0 promisc')
+                            #opening interface 'any'
+                            #setting capture filter 'udp or icmp or (tcp and (tcp[tcpflags] == tcp-syn or port 80 or port 1080 or
+                            #port 3128 or port 8000 or port 8080 or port 8118))'
+                            #preparing capture buffer...
+                            #creating 1 more processes (out of total 2)
+                            #please install 'schedtool' for better CPU scheduling
+                    elif role == "server":
+                        with cd('/home/' + env.user + '/'):
+                            run('[[ -d maltrail ]] || git clone https://github.com/stamparm/maltrail.git')
+                        with cd ('maltrail/'):
+                            sudo('python server.py ')
+
+                    else:
+                        print colored('=========================================', 'red')
+                        print colored('Wrong arg: excects = "sensor" or "server"', 'red')
+                        print colored('=========================================', 'red')
+
+                sudo('ping -c 1 136.161.101.53')
+                sudo('cat /var/log/maltrail/$(date +"%Y-%m-%d").log')
+
+                #To stop Sensor and Server instances (if running in background) execute the following:
+                #sudo pkill -f sensor.py
+                #pkill -f server.py
+
+                #http://127.0.0.1:8338 (default credentials: admin:changeme!)
+
+                #If option LOG_SERVER is set, then all events are being sent remotely to the Server,
+                #otherwise they are stored directly into the logging directory set with option LOG_DIR,
+                #which can be found inside the maltrail.conf file's section [All].
+
+                #In case that the option UPDATE_SERVER is set, then all the trails are being pulled from
+                #the given location, otherwise they are being updated from trails definitions located inside
+                #the installation itself.
+
+                #Option UDP_ADDRESS contains the server's log collecting listening address
+                #(Note: use 0.0.0.0 to listen on all interfaces), while option UDP_PORT contains
+                #listening port value. If turned on, when used in combination with option LOG_SERVER,
+                #it can be used for distinct (multiple) Sensor <-> Server architecture.
+
+                #Same as for Sensor, when running the Server (e.g. python server.py) for the first time
+                #and/or after a longer period of non-running, if option USE_SERVER_UPDATE_TRAILS is set to true,
+                # it will automatically update the trails from trail definitions (Note: stored inside the
+                # trails directory).
+                # Should server do the trail updates too (to support UPDATE_SERVER)
+
+        except:
+            print colored('===========================', 'red')
+            print colored('Problem installing MALTRAIL', 'red')
+            print colored('===========================', 'red')
 
 
 """

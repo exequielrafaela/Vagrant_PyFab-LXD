@@ -18,6 +18,7 @@ def lxd():
             sudo('add-apt-repository -y ppa:ubuntu-lxc/lxd-stable')
 
         sudo('apt-get update')
+        sudo('apt-get install iptables-persistent')
 
         # Install LXC/LXD if not already installed
         if exists('/usr/bin/lxd', use_sudo=True):
@@ -133,6 +134,7 @@ def lxd():
         print colored('#########################################', 'blue')
         sudo('lxc exec lxd-centos-01 -- chkconfig sshd on')
         sudo('lxc exec lxd-centos-01 -- service sshd start')
+        lxc_gw_ip = sudo('lxc exec lxd-centos-01 -- ifconfig eth0 | awk \'/inet /{print substr($2,1)}\'')
 
         print colored('###########################', 'blue')
         print colored('### CLIENT PROVISIONING ###', 'blue')
@@ -164,12 +166,23 @@ def lxd():
         print colored('######## SYNC FILES WITH LXD BASTION HOST #######', 'blue')
         print colored('#################################################', 'blue')
         sudo('lxc file push /vagrant/scripts/* lxd-centos-01/root/')
-        #lxc file push /vagrant/scripts/* lxd-centos-01/home/ebarrirero/; lxc exec lxd-centos-01 -- chown -R ebarrirero:ebarrirero /home/ebarrirero/
+        #sudo lxc file push /vagrant/scripts/* lxd-centos-01/home/ebarrirero/; sudo lxc exec lxd-centos-01 -- chown -R ebarrirero:ebarrirero /home/ebarrirero/
+
+        print colored('##########################', 'blue')
+        print colored('##### START FIREWALL #####', 'blue')
+        print colored('##########################', 'blue')
+        #https://help.ubuntu.com/lts/serverguide/lxc.html#lxc-network
+        sudo('iptables -t nat -A PREROUTING -p tcp -i lo --dport 80 -j DNAT --to-destination '+lxc_gw_ip+':80')
+        sudo('iptables -t nat -A PREROUTING -p tcp -i eth1 --dport 80 -j DNAT --to-destination '+lxc_gw_ip+':80')
+        sudo('iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 80 -j DNAT --to-destination '+lxc_gw_ip+':80')
+
+        #$ sudo iptables -A FORWARD -p tcp -d 10.0.3.201 --dport 80 -m state --state NEW,ESTABLISHED,RELATED -j ACCEPT
+
+        sudo('iptables -t nat -A PREROUTING -p tcp -i lo --dport 8338 -j DNAT --to-destination '+lxc_gw_ip+':8338')
+        sudo('iptables -t nat -A PREROUTING -p tcp -i eth1 --dport 8338 -j DNAT --to-destination '+lxc_gw_ip+':8338')
+        sudo('iptables -t nat -A PREROUTING -p tcp -i eth0 --dport 8338 -j DNAT --to-destination '+lxc_gw_ip+':8338')
 
 
-        print colored('######################################', 'blue')
-        print colored('FIREWALL - NAT TABLE STATUS:      ', 'blue')
-        print colored('######################################', 'blue')
         with hide('output'):
             fw = sudo('iptables -t nat -L')
         print colored(fw, 'red')

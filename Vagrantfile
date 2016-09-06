@@ -19,6 +19,8 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
     lxd.vm.hostname = "lxd"
     lxd.hostmanager.enabled = true
     lxd.hostmanager.manage_host = true
+    lxd.vm.network "forwarded_port", guest: 80, host: 8080
+    lxd.vm.network "forwarded_port", guest: 8338, host: 8338
     lxd.vm.provision :fabric do |fabric|
       fabric.fabfile_path = "./fabfile.py"
       fabric.tasks = ["lxd", ]
