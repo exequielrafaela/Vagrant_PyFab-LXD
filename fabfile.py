@@ -146,6 +146,7 @@ def lxd():
             sudo('lxc exec lxd-centos-0'+str(i)+' -- dhclient eth0')
             sudo('lxc exec lxd-centos-0'+str(i)+' -- yum clean all')
             sudo('lxc exec lxd-centos-0'+str(i)+' -- yum install -y python-devel vim net-tools sudo openssh-server openssh-clients wget')
+            sudo('lxc exec lxd-centos-0'+str(i)+' -- yum install -y epel-release')
             sudo('lxc exec lxd-centos-0'+str(i)+' -- chkconfig sshd on')
             sudo('lxc exec lxd-centos-0'+str(i)+' -- service sshd start')
             lxc_ip_addr = sudo('lxc exec lxd-centos-0'+str(i)+' -- ifconfig eth0 | awk \'/inet /{print substr($2,1)}\'')

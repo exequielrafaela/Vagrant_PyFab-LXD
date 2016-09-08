@@ -4,7 +4,7 @@ Vagrant.configure(VAGRANTFILE_API_VERSION) do |config|
   config.vm.box = "ubuntu/trusty64"
 
   config.vm.provider "virtualbox" do |vb|
-    vb.memory = 1536
+    vb.memory = 2048
     vb.cpus = 2
   end
 
