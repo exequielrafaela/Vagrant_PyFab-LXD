@@ -1027,7 +1027,13 @@ def maltrail(role):
             print colored('Problem installing MALTRAIL', 'red')
             print colored('===========================', 'red')
 
-def iptables(action,ip_addr[]):
+def iptables(action,ip_addr):
+    with settings(warn_only=False):
+        try:
+        except:
+            print colored('===========================', 'red')
+            print colored('Problem installing MALTRAIL', 'red')
+            print colored('===========================', 'red')
 
     #62.210.148.246
     #46.4.116.197
@@ -1035,13 +1041,13 @@ def iptables(action,ip_addr[]):
     #171.113.86.129
 
     #iptables -A INPUT -s <ip> -j DROP
-    iptables -A INPUT -s 62.210.148.246 -j DROP
-    iptables -A INPUT -s 46.4.116.197 -j DROP
-    iptables -A INPUT -s 51.254.97.23 -j DROP
-    iptables -A INPUT -s 171.113.86.129 -j DROP
+    #iptables -A INPUT -s 62.210.148.246 -j DROP
+    #iptables -A INPUT -s 46.4.116.197 -j DROP
+    #iptables -A INPUT -s 51.254.97.23 -j DROP
+    #iptables -A INPUT -s 171.113.86.129 -j DROP
 
-    for ip in list:
-            iptables -A INPUT
+    #for ip in list:
+    #        iptables -A INPUT
 
 """
 def db_backup():
